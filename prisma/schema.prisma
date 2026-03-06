@@ -21,6 +21,15 @@ model Organisation {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  // Subscription
+  subscriptionTier       String?   // FREE, PRO, AGENCY
+  stripeSubscriptionId   String?   @unique
+  subscriptionStatus     String?   // active, canceled, past_due, trialing
+  monthlyCreditsIncluded Int       @default(0)
+  monthlyCreditsUsed     Int       @default(0)
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+
   users              User[]
   invites            Invite[]
   bulkCheckJobs      BulkCheckJob[]
@@ -656,10 +665,12 @@ model CreditTransaction {
 }
 
 enum CreditTransactionType {
-  PURCHASE    // bought via Stripe
-  GRANT       // admin-granted free credits
-  DEDUCTION   // spent on checks
-  REFUND      // refunded for failed checks
+  PURCHASE      // bought via Stripe one-off pack
+  SUBSCRIPTION  // monthly subscription credit allocation
+  GRANT         // admin-granted free credits
+  DEDUCTION     // spent on checks
+  REFUND        // refunded for failed checks
+  WELCOME       // signup welcome credits
 }
 
 // ─────────────────────────────────────────────

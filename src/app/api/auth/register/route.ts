@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { WELCOME_CREDITS } from "@/lib/stripe";
 
 const registerSchema = z.object({
   token: z.string().min(1),
@@ -52,25 +53,43 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create user and mark invite used in a transaction
-    await db.$transaction([
-      db.user.create({
-        data: {
-          name,
-          email: invite.email,
-          username,
-          passwordHash,
-          role: "USER",
-          active: true,
-          forcePasswordReset: false,
-          organisationId: invite.organisationId ?? null,
-        },
-      }),
-      db.invite.update({
-        where: { id: invite.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
+    // Create user, mark invite used, and grant welcome credits
+    const newUser = await db.user.create({
+      data: {
+        name,
+        email: invite.email,
+        username,
+        passwordHash,
+        role: "USER",
+        active: true,
+        forcePasswordReset: false,
+        organisationId: invite.organisationId ?? null,
+      },
+    });
+
+    await db.invite.update({
+      where: { id: invite.id },
+      data: { usedAt: new Date() },
+    });
+
+    // Grant welcome credits
+    if (WELCOME_CREDITS > 0 && newUser.organisationId) {
+      await db.$transaction([
+        db.organisation.update({
+          where: { id: newUser.organisationId },
+          data: { creditBalance: { increment: WELCOME_CREDITS } },
+        }),
+        db.creditTransaction.create({
+          data: {
+            userId: newUser.id,
+            organisationId: newUser.organisationId,
+            type: "WELCOME",
+            credits: WELCOME_CREDITS,
+            packName: "Welcome Credits",
+          },
+        }),
+      ]);
+    }
 
     return NextResponse.json({ success: true, message: "Account created. You can now log in." }, { status: 201 });
   } catch (err) {
