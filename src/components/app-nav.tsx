@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   CreditCard,
   Zap,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -186,6 +187,12 @@ export function AppNav({ user }: AppNavProps) {
                 <Link href="/app/billing" className="flex items-center gap-2">
                   <Zap className="h-4 w-4" />
                   Billing & Credits
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/app/settings/connections" className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4" />
+                  Connections
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

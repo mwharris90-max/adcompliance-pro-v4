@@ -25,6 +25,7 @@ model Organisation {
   invites            Invite[]
   bulkCheckJobs      BulkCheckJob[]
   creditTransactions CreditTransaction[]
+  integrations       Integration[]
 
   @@map("organisations")
 }
@@ -58,6 +59,7 @@ model User {
   bulkCheckJobs       BulkCheckJob[]
   reviewedCategories  Category[]             @relation("CategoryReviewer")
   creditTransactions  CreditTransaction[]
+  integrations        Integration[]          @relation("ConnectedBy")
 
   @@index([organisationId])
   @@map("users")
@@ -390,7 +392,8 @@ model ComplianceCheck {
   bulkRowId String?
   bulkRow   BulkCheckRow? @relation(fields: [bulkRowId], references: [id])
 
-  user User @relation(fields: [userId], references: [id])
+  user      User       @relation(fields: [userId], references: [id])
+  syncedAd  SyncedAd?
 
   @@index([userId, createdAt])
   @@map("compliance_checks")
@@ -656,4 +659,87 @@ enum CreditTransactionType {
   GRANT       // admin-granted free credits
   DEDUCTION   // spent on checks
   REFUND      // refunded for failed checks
+}
+
+// ─────────────────────────────────────────────
+// INTEGRATIONS (OAuth connections to ad platforms)
+// ─────────────────────────────────────────────
+
+model Integration {
+  id               String            @id @default(cuid())
+  organisationId   String
+  connectedById    String
+  provider         IntegrationProvider
+  status           IntegrationStatus @default(DISCONNECTED)
+  label            String?           // user-given name, e.g. "Acme Meta Account"
+
+  // OAuth tokens (encrypted at rest via application layer)
+  accessToken      String?
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  scopes           String[]          // granted OAuth scopes
+
+  // Provider-specific account info
+  externalAccountId   String?        // e.g. Meta ad account ID, Google customer ID
+  externalAccountName String?        // e.g. "Acme Corp Ad Account"
+  accountMetadata     Json?          // extra provider-specific data
+
+  // Sync settings
+  autoSyncEnabled  Boolean           @default(false)
+  syncIntervalMins Int               @default(60)   // how often to poll for new ads
+  lastSyncAt       DateTime?
+  lastSyncStatus   String?           // "success", "error: token expired", etc.
+  lastSyncAdCount  Int?
+
+  // Error tracking
+  errorCount       Int               @default(0)
+  lastErrorAt      DateTime?
+  lastErrorMessage String?
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  disconnectedAt   DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  connectedBy  User         @relation("ConnectedBy", fields: [connectedById], references: [id])
+  syncedAds    SyncedAd[]
+
+  @@unique([organisationId, provider, externalAccountId])
+  @@index([organisationId])
+  @@index([provider, status])
+  @@map("integrations")
+}
+
+model SyncedAd {
+  id              String   @id @default(cuid())
+  integrationId   String
+  externalAdId    String   // ad ID in the external platform
+  externalStatus  String?  // PAUSED, ACTIVE, etc.
+  adContent       Json     // normalised ad content (headline, body, CTA, etc.)
+  assetUrls       String[]
+  rawPayload      Json?    // original API response for debugging
+  complianceCheckId String? @unique
+  lastSyncedAt    DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  integration     Integration      @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  complianceCheck ComplianceCheck? @relation(fields: [complianceCheckId], references: [id])
+
+  @@unique([integrationId, externalAdId])
+  @@index([integrationId])
+  @@map("synced_ads")
+}
+
+enum IntegrationProvider {
+  META
+  GOOGLE_ADS
+  HUBSPOT
+  HOOTSUITE
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR       // token expired or revoked
+  REFRESHING  // token refresh in progress
 }
