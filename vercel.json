@@ -1,6 +1,7 @@
 {
   "crons": [
     { "path": "/api/cron/scan", "schedule": "0 9 */20 * *" },
-    { "path": "/api/cron/process-bulk", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/process-bulk", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/sync-integrations", "schedule": "*/15 * * * *" }
   ]
 }

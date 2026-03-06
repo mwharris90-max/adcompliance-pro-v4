@@ -82,6 +82,11 @@ const navLinks = [
     icon: History,
   },
   {
+    href: "/app/integrations",
+    label: "Integrations",
+    icon: Link2,
+  },
+  {
     href: "/app/billing",
     label: "Billing",
     icon: CreditCard,
@@ -119,6 +124,8 @@ export function AppNav({ user }: AppNavProps) {
                   ? pathname === "/app/check"
                   : link.href === "/app/bulk-jobs"
                   ? pathname.startsWith("/app/bulk-jobs")
+                  : link.href === "/app/integrations"
+                  ? pathname.startsWith("/app/integrations")
                   : link.href === "/app/billing"
                   ? pathname.startsWith("/app/billing")
                   : pathname === link.href;
