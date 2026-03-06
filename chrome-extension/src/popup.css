@@ -1,0 +1,300 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 380px;
+  min-height: 200px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  color: #1e293b;
+  background: #ffffff;
+}
+
+#app {
+  padding: 16px;
+}
+
+.screen[hidden] {
+  display: none;
+}
+
+/* Header */
+.header {
+  margin-bottom: 16px;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+}
+
+.logo-sm {
+  width: 24px;
+  height: 24px;
+}
+
+h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.title-sm {
+  font-size: 14px;
+}
+
+.accent {
+  color: #1A56DB;
+}
+
+.subtitle {
+  font-size: 10px;
+  color: #1A56DB;
+  margin-top: -2px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-name {
+  font-size: 12px;
+  color: #64748b;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.badge.low {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.field-row .field {
+  flex: 1;
+}
+
+label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+input, textarea, select {
+  padding: 7px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: #1A56DB;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* Buttons */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: #1A56DB;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #1545b5;
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #64748b;
+  padding: 4px 8px;
+}
+
+.btn-ghost:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.btn-sm {
+  font-size: 12px;
+}
+
+.btn-loading[hidden] {
+  display: none;
+}
+
+/* Error */
+.error {
+  font-size: 12px;
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.error[hidden] {
+  display: none;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 14px 0;
+}
+
+/* Results */
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+.status-badge.clean {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.warnings {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+.status-badge.violations {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.view-link {
+  font-size: 12px;
+  color: #1A56DB;
+  text-decoration: none;
+}
+
+.view-link:hover {
+  text-decoration: underline;
+}
+
+.results-summary {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issue-item {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border-left: 3px solid;
+}
+
+.issue-item.fail {
+  background: #fef2f2;
+  border-color: #dc2626;
+  color: #991b1b;
+}
+
+.issue-item.warning {
+  background: #fefce8;
+  border-color: #ca8a04;
+  color: #854d0e;
+}
+
+.issue-icon {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+/* Footer */
+.footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}

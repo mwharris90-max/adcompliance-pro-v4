@@ -386,6 +386,7 @@ model ComplianceCheck {
   assetUrls     String[]
   results       Json?
   overallStatus ComplianceStatus?
+  source        String?
   createdAt     DateTime         @default(now())
   completedAt   DateTime?
 

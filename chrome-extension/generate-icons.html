@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate Icons</title></head>
+<body>
+<p>Right-click each canvas and "Save image as" to the icons folder.</p>
+<canvas id="c16" width="16" height="16"></canvas>
+<canvas id="c48" width="48" height="48"></canvas>
+<canvas id="c128" width="128" height="128"></canvas>
+<script>
+function draw(id, size) {
+  const c = document.getElementById(id);
+  const ctx = c.getContext('2d');
+  // Blue circle background
+  ctx.fillStyle = '#1A56DB';
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.fill();
+  // White "A" letter
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.round(size*0.55)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', size/2, size/2 + size*0.03);
+}
+draw('c16', 16);
+draw('c48', 48);
+draw('c128', 128);
+
+// Auto-download
+['c16','c48','c128'].forEach(id => {
+  const c = document.getElementById(id);
+  const link = document.createElement('a');
+  link.download = `icon-${c.width}.png`;
+  link.href = c.toDataURL();
+  link.click();
+});
+</script>
+</body>
+</html>

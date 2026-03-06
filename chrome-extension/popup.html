@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ad Compliance Pro</title>
+  <link rel="stylesheet" href="src/popup.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+      <div class="header">
+        <div class="logo-row">
+          <img src="icons/icon-48.png" alt="Logo" class="logo" />
+          <div>
+            <h1>Ad Compliance <span class="accent">Pro</span></h1>
+            <p class="subtitle">by AUX</p>
+          </div>
+        </div>
+      </div>
+      <form id="login-form" class="form">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@company.com" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Password" required />
+        </div>
+        <div id="login-error" class="error" hidden></div>
+        <button type="submit" id="login-btn" class="btn btn-primary">Sign In</button>
+      </form>
+    </div>
+
+    <!-- Main Screen -->
+    <div id="main-screen" class="screen" hidden>
+      <div class="header">
+        <div class="header-row">
+          <div class="logo-row">
+            <img src="icons/icon-48.png" alt="Logo" class="logo-sm" />
+            <h1 class="title-sm">Ad Compliance <span class="accent">Pro</span></h1>
+          </div>
+          <div class="user-info">
+            <span id="user-name" class="user-name"></span>
+            <span id="credit-balance" class="badge"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Check Form -->
+      <form id="check-form" class="form">
+        <div class="field">
+          <label for="headline">Headline</label>
+          <input type="text" id="headline" placeholder="Ad headline..." />
+        </div>
+        <div class="field">
+          <label for="body-text">Body / Primary Text</label>
+          <textarea id="body-text" rows="3" placeholder="Ad body text..."></textarea>
+        </div>
+        <div class="field">
+          <label for="cta">Call to Action</label>
+          <input type="text" id="cta" placeholder="e.g. Shop Now, Learn More..." />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="platform-select">Platform</label>
+            <select id="platform-select" required>
+              <option value="">Select...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="country-select">Country</label>
+            <select id="country-select" required>
+              <option value="">Select...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="category-select">Category (optional)</label>
+          <select id="category-select">
+            <option value="">None</option>
+          </select>
+        </div>
+        <div id="check-error" class="error" hidden></div>
+        <button type="submit" id="check-btn" class="btn btn-primary">
+          <span class="btn-text">Run Compliance Check</span>
+          <span class="btn-loading" hidden>Checking...</span>
+        </button>
+      </form>
+
+      <!-- Results -->
+      <div id="results-section" hidden>
+        <div class="divider"></div>
+        <div id="results-header" class="results-header">
+          <span id="results-status" class="status-badge"></span>
+          <a id="results-link" href="#" target="_blank" class="view-link">View Full Report</a>
+        </div>
+        <p id="results-summary" class="results-summary"></p>
+        <div id="issues-list" class="issues-list"></div>
+      </div>
+
+      <div class="footer">
+        <button id="logout-btn" class="btn btn-ghost btn-sm">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/popup.js" type="module"></script>
+</body>
+</html>
