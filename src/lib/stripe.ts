@@ -105,7 +105,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     name: "Max",
     monthlyCredits: 2000,
     priceId: process.env.STRIPE_MAX_PRICE_ID ?? "price_max_placeholder",
-    amount: 59900,  // £599/month
+    amount: 69900,  // £699/month
     currency: "gbp",
     features: [
       "2,000 Checkdits/month",
