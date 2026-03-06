@@ -133,6 +133,7 @@ model Platform {
   platformCertifications PlatformCertification[]
   proposedChanges        ProposedChange[]
   prohibitionConfigs     ProhibitionConfig[] @relation("ProhibitionPlatform")
+  policyArticles         PolicyArticle[]
 
   @@map("platforms")
 }
@@ -191,6 +192,7 @@ model Category {
   scanSources        ScanSource[]
   complianceExamples ComplianceExample[]
   prohibitionConfigs ProhibitionConfig[]
+  policyArticles     PolicyArticle[]
 
   @@map("categories")
 }
@@ -216,6 +218,7 @@ model Country {
   scanSources        ScanSource[]
   complianceExamples ComplianceExample[]
   prohibitionConfigs ProhibitionConfig[] @relation("ProhibitionCountry")
+  policyArticles     PolicyArticle[]
 
   @@map("countries")
 }
@@ -754,4 +757,36 @@ enum IntegrationStatus {
   DISCONNECTED
   ERROR       // token expired or revoked
   REFRESHING  // token refresh in progress
+}
+
+// ─────────────────────────────────────────────
+// POLICY LIBRARY (LEARNING CONTENT)
+// ─────────────────────────────────────────────
+
+model PolicyArticle {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  summary       String   // Short description shown in listings
+  content       String   @db.Text // Markdown body with explanations
+  examples      Json?    // Array of { good: string, bad: string, explanation: string }
+  videoUrl      String?  // YouTube embed URL
+  videoTitle    String?  // Video title for display
+  platformId    String?
+  categoryId    String?
+  countryId     String?
+  tags          String[] // e.g. ["alcohol", "gambling", "age-gate", "disclaimer"]
+  sortOrder     Int      @default(0)
+  published     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdById   String?
+
+  platform Platform? @relation(fields: [platformId], references: [id])
+  category Category? @relation(fields: [categoryId], references: [id])
+  country  Country?  @relation(fields: [countryId], references: [id])
+
+  @@index([platformId])
+  @@index([categoryId])
+  @@map("policy_articles")
 }

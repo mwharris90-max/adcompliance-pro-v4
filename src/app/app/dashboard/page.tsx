@@ -14,6 +14,8 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Zap,
+  FileText,
+  BookOpen,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -416,51 +418,56 @@ export default async function DashboardPage() {
 
       {/* Feature cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#1A56DB] to-[#1A56DB]/70">
-                <ClipboardCheck className="h-4 w-4 text-white" />
+        <Link href="/app/brief" className="group">
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#1A56DB] to-[#1A56DB]/70">
+                  <FileText className="h-4 w-4 text-white" />
+                </div>
+                <CardTitle className="text-base">Compliance Brief</CardTitle>
               </div>
-              <CardTitle className="text-base">Platform Rules</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm text-slate-500">
-            Check compliance against Instagram, Facebook, and Google Ads
-            policies — with AI-powered interpretation.
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-500">
+              Generate a pre-check brief of all applicable rules, restrictions,
+              and technical specs for your ad campaign.
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-400">
-                <Globe className="h-4 w-4 text-white" />
+        <Link href="/app/learn" className="group">
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-400">
+                  <BookOpen className="h-4 w-4 text-white" />
+                </div>
+                <CardTitle className="text-base">Policy Library</CardTitle>
               </div>
-              <CardTitle className="text-base">Geographic Rules</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm text-slate-500">
-            Verify compliance with local legislation across 20+ approved
-            countries, including age gates, time restrictions, and mandatory
-            disclaimers.
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-500">
+              Learn about advertising policies with explanations, real-world
+              examples, and video guides for each platform and category.
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-400">
-                <ShieldCheck className="h-4 w-4 text-white" />
+        <Link href="/app/check" className="group">
+          <Card className="border-slate-200 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-400">
+                  <ClipboardCheck className="h-4 w-4 text-white" />
+                </div>
+                <CardTitle className="text-base">Run a Check</CardTitle>
               </div>
-              <CardTitle className="text-base">Asset Validation</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm text-slate-500">
-            Validate image dimensions, file sizes, and character counts against
-            each platform&apos;s technical requirements.
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-500">
+              Check your ad copy and assets against platform rules, geographic
+              regulations, and technical requirements.
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );

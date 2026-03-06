@@ -19,6 +19,7 @@ import {
   Menu,
   X,
   FileText,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,6 +90,11 @@ const navLinks = [
     href: "/app/checks",
     label: "Compliance",
     icon: History,
+  },
+  {
+    href: "/app/learn",
+    label: "Learn",
+    icon: BookOpen,
   },
   {
     href: "/app/integrations",
