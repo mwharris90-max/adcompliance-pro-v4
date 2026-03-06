@@ -134,6 +134,7 @@ model Platform {
   proposedChanges        ProposedChange[]
   prohibitionConfigs     ProhibitionConfig[] @relation("ProhibitionPlatform")
   policyArticles         PolicyArticle[]
+  policyQuizzes          PolicyQuiz[]
 
   @@map("platforms")
 }
@@ -193,6 +194,7 @@ model Category {
   complianceExamples ComplianceExample[]
   prohibitionConfigs ProhibitionConfig[]
   policyArticles     PolicyArticle[]
+  policyQuizzes      PolicyQuiz[]
 
   @@map("categories")
 }
@@ -786,7 +788,42 @@ model PolicyArticle {
   category Category? @relation(fields: [categoryId], references: [id])
   country  Country?  @relation(fields: [countryId], references: [id])
 
+  quizzes PolicyQuiz[]
+
   @@index([platformId])
   @@index([categoryId])
   @@map("policy_articles")
+}
+
+// ─────────────────────────────────────────────
+// POLICY QUIZZES (INTERACTIVE TESTS)
+// ─────────────────────────────────────────────
+
+model PolicyQuiz {
+  id           String   @id @default(cuid())
+  articleId    String?
+  question     String   // e.g. "Identify the non-compliant terms in this ad"
+  adCopy       String   @db.Text // The ad text the user must analyse
+  problemTerms Json     // Array of { term: string, explanation: string }
+  difficulty   QuizDifficulty @default(MEDIUM)
+  platformId   String?
+  categoryId   String?
+  tags         String[]
+  published    Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  article  PolicyArticle? @relation(fields: [articleId], references: [id])
+  platform Platform?      @relation(fields: [platformId], references: [id])
+  category Category?      @relation(fields: [categoryId], references: [id])
+
+  @@index([articleId])
+  @@map("policy_quizzes")
+}
+
+enum QuizDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }

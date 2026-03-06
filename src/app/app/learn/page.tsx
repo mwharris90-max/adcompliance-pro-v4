@@ -11,6 +11,7 @@ import {
   PlayCircle,
   ChevronRight,
   Filter,
+  HelpCircle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -84,6 +85,28 @@ export default function LearnPage() {
           resources.
         </p>
       </div>
+
+      {/* Quiz banner */}
+      <Link href="/app/learn/quiz">
+        <Card className="border-amber-200 bg-amber-50 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 group cursor-pointer">
+          <CardContent className="pt-4 pb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500">
+                <HelpCircle className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-900 group-hover:text-[#1A56DB] transition-colors">
+                  Test Your Knowledge
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Take interactive quizzes to spot non-compliant ad copy
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-amber-400 group-hover:text-[#1A56DB] transition-colors" />
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Search & filters */}
       <Card className="border-slate-200 shadow-sm">

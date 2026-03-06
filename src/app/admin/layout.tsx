@@ -20,6 +20,7 @@ import {
   BarChart3,
   Ban,
   Coins,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -40,6 +41,7 @@ const navItems = [
   { href: "/admin/scan-sources", label: "Scan Sources", icon: Radar },
   { href: "/admin/prohibitions", label: "Prohibitions", icon: Ban },
   { href: "/admin/ai-training", label: "AI Training", icon: BrainCircuit },
+  { href: "/admin/learn", label: "Resources", icon: BookOpen },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

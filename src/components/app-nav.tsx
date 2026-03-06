@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -65,53 +65,108 @@ interface AppNavProps {
   };
 }
 
-const navLinks = [
+interface NavGroup {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[];
+  prefixes: string[];
+}
+
+const navGroups: NavGroup[] = [
   {
-    href: "/app/dashboard",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    href: "/app/check",
-    label: "New Check",
+    label: "Check",
     icon: ClipboardCheck,
+    prefixes: ["/app/check", "/app/bulk-jobs"],
+    items: [
+      { href: "/app/check", label: "New Check", icon: ClipboardCheck },
+      { href: "/app/bulk-jobs", label: "Bulk Jobs", icon: FileSpreadsheet },
+    ],
   },
   {
-    href: "/app/brief",
-    label: "Brief",
-    icon: FileText,
-  },
-  {
-    href: "/app/bulk-jobs",
-    label: "Bulk Jobs",
-    icon: FileSpreadsheet,
-  },
-  {
-    href: "/app/checks",
-    label: "Compliance",
+    label: "Results",
     icon: History,
+    prefixes: ["/app/checks", "/app/integrations"],
+    items: [
+      { href: "/app/checks", label: "Compliance History", icon: History },
+      { href: "/app/integrations", label: "Integrations", icon: Link2 },
+    ],
   },
   {
-    href: "/app/learn",
-    label: "Learn",
+    label: "Resources",
     icon: BookOpen,
-  },
-  {
-    href: "/app/integrations",
-    label: "Integrations",
-    icon: Link2,
-  },
-  {
-    href: "/app/billing",
-    label: "Billing",
-    icon: CreditCard,
+    prefixes: ["/app/brief", "/app/learn"],
+    items: [
+      { href: "/app/brief", label: "Compliance Brief", icon: FileText },
+      { href: "/app/learn", label: "Policy Library", icon: BookOpen },
+    ],
   },
 ];
 
-function isLinkActive(href: string, pathname: string) {
-  if (href === "/app/check") return pathname === "/app/check";
-  if (href === "/app/dashboard") return pathname === "/app/dashboard";
-  return pathname.startsWith(href);
+function isGroupActive(group: NavGroup, pathname: string) {
+  return group.prefixes.some((p) =>
+    p === "/app/check" ? pathname === "/app/check" : pathname.startsWith(p)
+  );
+}
+
+function NavDropdown({ group, pathname }: { group: NavGroup; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = isGroupActive(group, pathname);
+  const Icon = group.icon;
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          "flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+          active
+            ? "text-[#1A56DB] border-b-2 border-[#1A56DB] rounded-none"
+            : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {group.label}
+        <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50">
+          {group.items.map((item) => {
+            const ItemIcon = item.icon;
+            const itemActive =
+              item.href === "/app/check"
+                ? pathname === "/app/check"
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors",
+                  itemActive
+                    ? "text-[#1A56DB] bg-[#1A56DB]/5 font-medium"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                <ItemIcon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function AppNav({ user }: AppNavProps) {
@@ -144,27 +199,26 @@ export function AppNav({ user }: AppNavProps) {
               </div>
             </Link>
 
-            {/* Desktop nav links */}
+            {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const isActive = isLinkActive(link.href, pathname);
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors",
-                      isActive
-                        ? "text-[#1A56DB] border-b-2 border-[#1A56DB] rounded-none"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {link.label}
-                  </Link>
-                );
-              })}
+              {/* Dashboard — standalone link */}
+              <Link
+                href="/app/dashboard"
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors",
+                  pathname === "/app/dashboard"
+                    ? "text-[#1A56DB] border-b-2 border-[#1A56DB] rounded-none"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md"
+                )}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+
+              {/* Grouped nav items */}
+              {navGroups.map((group) => (
+                <NavDropdown key={group.label} group={group} pathname={pathname} />
+              ))}
 
               {user.role === "ADMIN" && (
                 <Link
@@ -177,7 +231,7 @@ export function AppNav({ user }: AppNavProps) {
                   )}
                 >
                   <Shield className="h-4 w-4" />
-                  Admin Portal
+                  Admin
                 </Link>
               )}
             </nav>
@@ -211,7 +265,7 @@ export function AppNav({ user }: AppNavProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/app/billing" className="flex items-center gap-2">
-                    <Zap className="h-4 w-4" />
+                    <CreditCard className="h-4 w-4" />
                     Billing & Credits
                   </Link>
                 </DropdownMenuItem>
@@ -253,24 +307,55 @@ export function AppNav({ user }: AppNavProps) {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white">
           <nav className="flex flex-col px-4 py-3 space-y-1">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const isActive = isLinkActive(link.href, pathname);
+            {/* Dashboard */}
+            <Link
+              href="/app/dashboard"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                pathname === "/app/dashboard"
+                  ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              )}
+            >
+              <LayoutDashboard className="h-4.5 w-4.5" />
+              Dashboard
+            </Link>
+
+            {/* Grouped sections */}
+            {navGroups.map((group) => {
+              const GroupIcon = group.icon;
+              const active = isGroupActive(group, pathname);
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-[#1A56DB]/10 text-[#1A56DB]"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}
-                >
-                  <Icon className="h-4.5 w-4.5" />
-                  {link.label}
-                </Link>
+                <div key={group.label}>
+                  <div className="border-t border-slate-100 my-1" />
+                  <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    {group.label}
+                  </p>
+                  {group.items.map((item) => {
+                    const ItemIcon = item.icon;
+                    const itemActive =
+                      item.href === "/app/check"
+                        ? pathname === "/app/check"
+                        : pathname.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                          itemActive
+                            ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        )}
+                      >
+                        <ItemIcon className="h-4.5 w-4.5" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
               );
             })}
 
@@ -294,6 +379,19 @@ export function AppNav({ user }: AppNavProps) {
             )}
 
             <div className="border-t border-slate-100 my-1" />
+            <Link
+              href="/app/billing"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                pathname.startsWith("/app/billing")
+                  ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              )}
+            >
+              <CreditCard className="h-4.5 w-4.5" />
+              Billing & Credits
+            </Link>
             <Link
               href="/app/settings"
               onClick={() => setMobileOpen(false)}
