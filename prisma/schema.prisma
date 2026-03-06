@@ -1,0 +1,659 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ORGANISATIONS
+// ─────────────────────────────────────────────
+
+model Organisation {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  monthlyLimit   Int      @default(100)
+  creditBalance  Int      @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users              User[]
+  invites            Invite[]
+  bulkCheckJobs      BulkCheckJob[]
+  creditTransactions CreditTransaction[]
+
+  @@map("organisations")
+}
+
+// ─────────────────────────────────────────────
+// USERS & AUTH
+// ─────────────────────────────────────────────
+
+model User {
+  id                 String    @id @default(cuid())
+  username           String    @unique
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               UserRole  @default(USER)
+  active             Boolean   @default(true)
+  forcePasswordReset Boolean   @default(false)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organisationId   String?
+  organisation     Organisation? @relation(fields: [organisationId], references: [id])
+  stripeCustomerId String?       @unique
+
+  complianceChecks    ComplianceCheck[]
+  confirmedChanges    ProposedChange[]       @relation("ConfirmedBy")
+  complianceExamples  ComplianceExample[]
+  categoryOverrides   CategoryOverrideAudit[]
+  invitesSent         Invite[]               @relation("InvitedBy")
+  bulkCheckJobs       BulkCheckJob[]
+  reviewedCategories  Category[]             @relation("CategoryReviewer")
+  creditTransactions  CreditTransaction[]
+
+  @@index([organisationId])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+// ─────────────────────────────────────────────
+// INVITES
+// ─────────────────────────────────────────────
+
+model Invite {
+  id             String    @id @default(cuid())
+  email          String
+  token          String    @unique
+  organisationId String?
+  invitedById    String
+  usedAt         DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation? @relation(fields: [organisationId], references: [id])
+  invitedBy    User           @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@map("invites")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// ─────────────────────────────────────────────
+// ADVERTISING PLATFORMS
+// ─────────────────────────────────────────────
+
+model Platform {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  logoUrl     String
+  parentName  String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  channelRequirements    ChannelRequirement[]
+  platformRules          PlatformRule[]
+  geoRules               GeoRule[]
+  scanSources            ScanSource[]
+  complianceExamples     ComplianceExample[]
+  platformCertifications PlatformCertification[]
+  proposedChanges        ProposedChange[]
+  prohibitionConfigs     ProhibitionConfig[] @relation("ProhibitionPlatform")
+
+  @@map("platforms")
+}
+
+model ChannelRequirement {
+  id         String          @id @default(cuid())
+  platformId String
+  specType   ChannelSpecType
+  specKey    String
+  value      String
+  notes      String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  platform Platform @relation(fields: [platformId], references: [id])
+
+  @@unique([platformId, specKey])
+  @@map("channel_requirements")
+}
+
+enum ChannelSpecType {
+  CHARACTER_LIMIT
+  FILE_SIZE
+  FILE_FORMAT
+  DIMENSIONS
+  DURATION
+  SAFE_ZONE
+  OTHER
+}
+
+// ─────────────────────────────────────────────
+// PRODUCT / SERVICE CATEGORIES
+// ─────────────────────────────────────────────
+
+model Category {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  slug             String    @unique
+  description      String?
+  parentId         String?
+  active           Boolean   @default(true)
+  sortOrder        Int       @default(0)
+  iconName         String?
+  lastReviewedAt   DateTime?
+  lastReviewedById String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   Category[] @relation("CategoryHierarchy")
+  reviewedBy User?      @relation("CategoryReviewer", fields: [lastReviewedById], references: [id])
+
+  platformRules      PlatformRule[]
+  geoRules           GeoRule[]
+  proposedChanges    ProposedChange[]
+  scanSources        ScanSource[]
+  complianceExamples ComplianceExample[]
+  prohibitionConfigs ProhibitionConfig[]
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
+// COUNTRIES & GEOGRAPHIC RULES
+// ─────────────────────────────────────────────
+
+model Country {
+  id           String           @id @default(cuid())
+  name         String           @unique
+  code         String           @unique
+  region       GeographicRegion
+  approved     Boolean          @default(false)
+  approvedAt   DateTime?
+  approvedById String?
+  complexRules Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  geoRules           GeoRule[]
+  proposedChanges    ProposedChange[]
+  scanSources        ScanSource[]
+  complianceExamples ComplianceExample[]
+  prohibitionConfigs ProhibitionConfig[] @relation("ProhibitionCountry")
+
+  @@map("countries")
+}
+
+enum GeographicRegion {
+  NORTH_AMERICA
+  LATIN_AMERICA
+  EUROPEAN_UNION
+  EUROPE_OTHER
+  UNITED_KINGDOM
+  MIDDLE_EAST_AFRICA
+  ASIA_PACIFIC
+  OCEANIA
+  SOUTH_ASIA
+}
+
+// ─────────────────────────────────────────────
+// COMPLIANCE RULES
+// ─────────────────────────────────────────────
+
+model PlatformRule {
+  id             String     @id @default(cuid())
+  platformId     String
+  categoryId     String
+  status         RuleStatus @default(UNKNOWN)
+  notes          String?
+  conditions     Json?
+  referenceUrl   String?
+  lastVerifiedAt DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  platform Platform  @relation(fields: [platformId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([platformId, categoryId])
+  @@map("platform_rules")
+}
+
+model GeoRule {
+  id             String     @id @default(cuid())
+  countryId      String
+  categoryId     String
+  platformId     String?
+  status         RuleStatus @default(UNKNOWN)
+  restrictions   Json?
+  notes          String?
+  legislationUrl String?
+  lastVerifiedAt DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  country  Country   @relation(fields: [countryId], references: [id])
+  category Category  @relation(fields: [categoryId], references: [id])
+  platform Platform? @relation(fields: [platformId], references: [id])
+
+  @@unique([countryId, categoryId, platformId])
+  @@map("geo_rules")
+}
+
+enum RuleStatus {
+  ALLOWED
+  RESTRICTED
+  PROHIBITED
+  UNKNOWN
+}
+
+// ─────────────────────────────────────────────
+// PROPOSED CHANGES (AUTO-SCAN WORKFLOW)
+// ─────────────────────────────────────────────
+
+model ProposedChange {
+  id              String               @id @default(cuid())
+  changeType      ProposedChangeType
+  ruleType        RuleType
+  platformId      String?
+  categoryId      String?
+  countryId       String?
+  currentRuleId   String?
+  currentRuleData Json?
+  proposedData    Json
+  aiSummary       String
+  sourceUrl       String
+  detectedAt      DateTime             @default(now())
+  status          ProposedChangeStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  reviewNotes     String?
+
+  platform   Platform? @relation(fields: [platformId], references: [id])
+  category   Category? @relation(fields: [categoryId], references: [id])
+  country    Country?  @relation(fields: [countryId], references: [id])
+  reviewedBy User?     @relation("ConfirmedBy", fields: [reviewedById], references: [id])
+
+  @@index([status, detectedAt])
+  @@map("proposed_changes")
+}
+
+enum ProposedChangeType {
+  NEW_RULE
+  AMENDED_RULE
+  REMOVED_RULE
+}
+
+enum RuleType {
+  PLATFORM_RULE
+  GEO_RULE
+  CHANNEL_REQUIREMENT
+}
+
+enum ProposedChangeStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────
+// SCAN SOURCES
+// ─────────────────────────────────────────────
+
+model ScanSource {
+  id            String   @id @default(cuid())
+  url           String   @unique
+  label         String
+  platformId    String?
+  countryId     String?
+  categoryId    String?
+  lastScannedAt DateTime?
+  lastHash      String?
+  lastContent   String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  platform Platform?  @relation(fields: [platformId], references: [id])
+  country  Country?   @relation(fields: [countryId], references: [id])
+  category Category?  @relation(fields: [categoryId], references: [id])
+
+  @@map("scan_sources")
+}
+
+// ─────────────────────────────────────────────
+// SCAN LOGS
+// ─────────────────────────────────────────────
+
+model ScanLog {
+  id             String      @id @default(cuid())
+  startedAt      DateTime    @default(now())
+  completedAt    DateTime?
+  triggeredBy    ScanTrigger @default(CRON)
+  sourcesScanned Int         @default(0)
+  sourcesChanged Int         @default(0)
+  changesCreated Int         @default(0)
+  errorCount     Int         @default(0)
+  errors         Json?
+
+  @@map("scan_logs")
+}
+
+enum ScanTrigger {
+  CRON
+  MANUAL
+}
+
+// ─────────────────────────────────────────────
+// COMPLIANCE CHECKS
+// ─────────────────────────────────────────────
+
+model ComplianceCheck {
+  id            String           @id @default(cuid())
+  userId        String
+  status        ComplianceStatus @default(PENDING)
+  platformIds   String[]
+  categoryIds   String[]
+  countryIds    String[]
+  adContent     Json
+  assetUrls     String[]
+  results       Json?
+  overallStatus ComplianceStatus?
+  createdAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  bulkRowId String?
+  bulkRow   BulkCheckRow? @relation(fields: [bulkRowId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("compliance_checks")
+}
+
+// ─────────────────────────────────────────────
+// BULK CHECK JOBS
+// ─────────────────────────────────────────────
+
+model BulkCheckJob {
+  id              String         @id @default(cuid())
+  userId          String
+  organisationId  String?
+  filename        String
+  rowCount        Int
+  uniqueRowCount  Int
+  duplicateCount  Int            @default(0)
+  mode            BulkCheckMode  @default(INSTANT)
+  status          BulkJobStatus  @default(PENDING)
+  checkditsCost   Decimal        @db.Decimal(10, 2)
+  checkditsRefund Decimal        @default(0) @db.Decimal(10, 2)
+  platformIds     String[]
+  categoryIds     String[]
+  countryIds      String[]
+  columnMapping   Json
+  resultsSummary  Json?
+  submittedAt     DateTime       @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  notifiedAt      DateTime?
+
+  user         User           @relation(fields: [userId], references: [id])
+  organisation Organisation?  @relation(fields: [organisationId], references: [id])
+  rows         BulkCheckRow[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("bulk_check_jobs")
+}
+
+model BulkCheckRow {
+  id            String              @id @default(cuid())
+  bulkJobId     String
+  rowIndex      Int
+  contentHash   String
+  adContent     Json
+  rawCsvRow     Json
+  status        BulkRowStatus       @default(PENDING)
+  isDuplicate   Boolean             @default(false)
+  duplicateOfId String?
+  overallStatus ComplianceStatus?
+  results       Json?
+  aiFixApplied       Boolean             @default(false)
+  editedContent      Json?
+  detectedCategoryId String?
+  detectedCategoryName String?
+  overrideCategoryIds Json?
+  createdAt          DateTime            @default(now())
+  completedAt        DateTime?
+
+  bulkJob          BulkCheckJob          @relation(fields: [bulkJobId], references: [id], onDelete: Cascade)
+  duplicateOf      BulkCheckRow?         @relation("RowDuplicates", fields: [duplicateOfId], references: [id])
+  duplicates       BulkCheckRow[]        @relation("RowDuplicates")
+  checks           ComplianceCheck[]
+  categoryOverrides CategoryOverrideAudit[]
+
+  @@unique([bulkJobId, rowIndex])
+  @@index([bulkJobId, contentHash])
+  @@map("bulk_check_rows")
+}
+
+enum BulkCheckMode {
+  INSTANT
+  BATCH
+}
+
+enum BulkJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+}
+
+enum BulkRowStatus {
+  PENDING
+  PROCESSING
+  COMPLETE
+  FAILED
+  SKIPPED_DUPLICATE
+}
+
+enum ComplianceStatus {
+  PENDING
+  RUNNING
+  CLEAN
+  WARNINGS
+  VIOLATIONS
+  ERROR
+}
+
+// ─────────────────────────────────────────────
+// PLATFORM CERTIFICATIONS
+// ─────────────────────────────────────────────
+
+model PlatformCertification {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  platformId   String
+  description  String
+  infoUrl      String?
+  categoryIds  String[]
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  platform Platform @relation(fields: [platformId], references: [id])
+  orgCertifications OrgCertification[]
+
+  @@map("platform_certifications")
+}
+
+model OrgCertification {
+  id              String   @id @default(cuid())
+  organisationId  String?
+  userId          String
+  certificationId String
+  declaredAt      DateTime @default(now())
+  declaredById    String
+  evidenceUrl     String?
+  notes           String?
+  active          Boolean  @default(true)
+
+  certification PlatformCertification @relation(fields: [certificationId], references: [id])
+
+  @@unique([organisationId, certificationId])
+  @@unique([userId, certificationId])
+  @@map("org_certifications")
+}
+
+// ─────────────────────────────────────────────
+// PROHIBITION CONFIGS (ADMIN-MANAGED)
+// ─────────────────────────────────────────────
+
+model ProhibitionConfig {
+  id                  String   @id @default(cuid())
+  categoryId          String
+  countryId           String?
+  platformId          String?
+
+  // User-facing text
+  warningTitle        String   @default("Regulatory restriction detected")
+  warningMessage      String   @default("Your selected categories include jurisdictions where certain types of advertising are prohibited by law.")
+  confirmationMessage String   @default("I confirm my adverts do not contravene this regulation")
+
+  // AI detection guidance
+  detectionGuidance   String?  @db.Text
+  detectionExamples   Json?
+  strictness          Int      @default(50)
+
+  // Chat history for admin AI conversations about this config
+  chatHistory         Json?
+
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  category Category  @relation(fields: [categoryId], references: [id])
+  country  Country?  @relation("ProhibitionCountry", fields: [countryId], references: [id])
+  platform Platform? @relation("ProhibitionPlatform", fields: [platformId], references: [id])
+
+  @@unique([categoryId, countryId, platformId])
+  @@map("prohibition_configs")
+}
+
+// ─────────────────────────────────────────────
+// AI TRAINING EXAMPLES
+// ─────────────────────────────────────────────
+
+enum ExampleVerdict {
+  COMPLIANT
+  NON_COMPLIANT
+}
+
+model ComplianceExample {
+  id            String         @id @default(cuid())
+  title         String
+  contentSample String
+  imageUrl      String?
+  verdict       ExampleVerdict
+  explanation   String
+  rubric        Json?
+  categoryId    String?
+  platformId    String?
+  countryId     String?
+  active        Boolean        @default(true)
+  version       Int            @default(1)
+  supersededAt  DateTime?
+  createdById   String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  category  Category? @relation(fields: [categoryId], references: [id])
+  platform  Platform? @relation(fields: [platformId], references: [id])
+  country   Country?  @relation(fields: [countryId], references: [id])
+  createdBy User      @relation(fields: [createdById], references: [id])
+
+  @@map("compliance_examples")
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY OVERRIDE AUDIT LOG
+// ─────────────────────────────────────────────
+
+model CategoryOverrideAudit {
+  id               String   @id @default(cuid())
+  userId           String
+  bulkRowId        String?
+  bulkJobId        String?
+  originalCategoryId   String
+  originalCategoryName String
+  overrideCategoryId   String
+  overrideCategoryName String
+  restrictionLevel     String   // "prohibited" | "restricted" | "allowed"
+  acknowledgement      String   // the warning text the user acknowledged
+  createdAt        DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id])
+  bulkRow BulkCheckRow? @relation(fields: [bulkRowId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([bulkRowId])
+  @@map("category_override_audits")
+}
+
+// ─────────────────────────────────────────────
+// BILLING
+// ─────────────────────────────────────────────
+
+model CreditTransaction {
+  id                String    @id @default(cuid())
+  userId            String
+  organisationId    String?
+  type              CreditTransactionType
+  credits           Int
+  stripeSessionId   String?   @unique
+  stripePaymentId   String?
+  packName          String?
+  amountPaid        Int?      // in pence/cents
+  currency          String?   @default("gbp")
+  createdAt         DateTime  @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  organisation Organisation? @relation(fields: [organisationId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([organisationId])
+  @@map("credit_transactions")
+}
+
+enum CreditTransactionType {
+  PURCHASE    // bought via Stripe
+  GRANT       // admin-granted free credits
+  DEDUCTION   // spent on checks
+  REFUND      // refunded for failed checks
+}
