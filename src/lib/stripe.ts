@@ -13,26 +13,26 @@ export function getStripe(): Stripe {
 
 export const CREDIT_PACKS = [
   {
-    name: "Starter Pack",
+    name: "Small Top-Up",
     credits: 50,
     priceId: "price_1T80Fc989wmDp0YIB8tt1kgM",
-    amount: 999,   // £9.99
+    amount: 3500,   // £35 (£0.70/credit)
     currency: "gbp",
     popular: false,
   },
   {
-    name: "Growth Pack",
+    name: "Medium Top-Up",
     credits: 200,
     priceId: "price_1T80Fd989wmDp0YIihGPN8zk",
-    amount: 2999,  // £29.99
+    amount: 11900,  // £119 (£0.595/credit)
     currency: "gbp",
     popular: true,
   },
   {
-    name: "Agency Pack",
+    name: "Large Top-Up",
     credits: 500,
     priceId: "price_1T80Fd989wmDp0YI1PL5u4pO",
-    amount: 5999,  // £59.99
+    amount: 24900,  // £249 (£0.498/credit)
     currency: "gbp",
     popular: false,
   },
@@ -70,34 +70,66 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     ],
   },
   {
-    tier: "PRO",
-    name: "Pro",
+    tier: "STARTER",
+    name: "Starter",
     monthlyCredits: 150,
-    priceId: process.env.STRIPE_PRO_PRICE_ID ?? "price_pro_placeholder",
-    amount: 1999,  // £19.99/month
+    priceId: process.env.STRIPE_STARTER_PRICE_ID ?? "price_starter_placeholder",
+    amount: 7900,  // £79/month
     currency: "gbp",
     features: [
       "150 Checkdits/month",
       "Everything in Free",
       "Bulk CSV upload",
       "Chrome extension",
-      "Priority AI processing",
+      "Results history & export",
     ],
   },
   {
-    tier: "AGENCY",
-    name: "Agency",
-    monthlyCredits: 500,
-    priceId: process.env.STRIPE_AGENCY_PRICE_ID ?? "price_agency_placeholder",
-    amount: 4999,  // £49.99/month
+    tier: "PRO",
+    name: "Pro",
+    monthlyCredits: 600,
+    priceId: process.env.STRIPE_PRO_PRICE_ID ?? "price_pro_placeholder",
+    amount: 24900,  // £249/month
     currency: "gbp",
     features: [
-      "500 Checkdits/month",
-      "Everything in Pro",
+      "600 Checkdits/month",
+      "Everything in Starter",
       "Integration auto-sync",
+      "Priority AI processing",
       "Team collaboration",
-      "Dedicated support",
       "API access",
+    ],
+  },
+  {
+    tier: "MAX",
+    name: "Max",
+    monthlyCredits: 2000,
+    priceId: process.env.STRIPE_MAX_PRICE_ID ?? "price_max_placeholder",
+    amount: 59900,  // £599/month
+    currency: "gbp",
+    features: [
+      "2,000 Checkdits/month",
+      "Everything in Pro",
+      "Dedicated support",
+      "Custom rule configuration",
+      "Advanced reporting",
+      "SLA guarantee",
+    ],
+  },
+  {
+    tier: "ENTERPRISE",
+    name: "Enterprise",
+    monthlyCredits: 0,
+    priceId: null,
+    amount: 0,
+    currency: "gbp",
+    features: [
+      "Custom Checkdit volume",
+      "Everything in Max",
+      "White-label options",
+      "Dedicated account manager",
+      "Custom integrations",
+      "On-premise deployment",
     ],
   },
 ];

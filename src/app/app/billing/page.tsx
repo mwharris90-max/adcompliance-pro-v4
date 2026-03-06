@@ -222,7 +222,7 @@ export default function BillingPage() {
                 <div>
                   <p className="text-sm text-slate-500">Current Plan</p>
                   <p className="text-lg font-semibold text-slate-900">
-                    {currentTier === "FREE" ? "Free" : currentTier === "PRO" ? "Pro" : "Agency"}
+                    {{ FREE: "Free", STARTER: "Starter", PRO: "Pro", MAX: "Max", ENTERPRISE: "Enterprise" }[currentTier] ?? currentTier}
                     {subscription?.status === "active" && (
                       <Badge className="ml-2 bg-green-100 text-green-700 border-green-200 text-xs">Active</Badge>
                     )}
@@ -278,10 +278,11 @@ export default function BillingPage() {
         <p className="text-sm text-slate-500">
           Monthly plans with recurring credit allocations. Credits refresh each billing cycle.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plans.map((plan) => {
             const isCurrent = plan.tier === currentTier;
             const isHigher = plans.findIndex((p) => p.tier === plan.tier) > plans.findIndex((p) => p.tier === currentTier);
+            const isEnterprise = plan.tier === "ENTERPRISE";
             return (
               <Card
                 key={plan.tier}
@@ -310,19 +311,23 @@ export default function BillingPage() {
                 <CardContent className="space-y-4">
                   <div>
                     <p className="text-3xl font-semibold text-slate-900 tabular-nums">
-                      {plan.amount === 0 ? "Free" : formatAmount(plan.amount, plan.currency)}
+                      {isEnterprise ? "Custom" : plan.amount === 0 ? "Free" : formatAmount(plan.amount, plan.currency)}
                     </p>
-                    {plan.amount > 0 && (
+                    {plan.amount > 0 && !isEnterprise && (
                       <p className="text-sm text-slate-500 mt-0.5">per month</p>
                     )}
-                    <p className="text-sm text-slate-500 mt-1">
-                      {plan.monthlyCredits} Checkdits/month
-                      {plan.amount > 0 && (
-                        <span className="text-slate-400">
-                          {" "}({formatAmount(Math.round(plan.amount / plan.monthlyCredits), plan.currency)}/each)
-                        </span>
-                      )}
-                    </p>
+                    {isEnterprise ? (
+                      <p className="text-sm text-slate-500 mt-1">Tailored to your needs</p>
+                    ) : (
+                      <p className="text-sm text-slate-500 mt-1">
+                        {plan.monthlyCredits} Checkdits/month
+                        {plan.amount > 0 && plan.monthlyCredits > 0 && (
+                          <span className="text-slate-400">
+                            {" "}({formatAmount(Math.round(plan.amount / plan.monthlyCredits), plan.currency)}/each)
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                   <ul className="space-y-2">
                     {plan.features.map((f) => (
@@ -339,6 +344,14 @@ export default function BillingPage() {
                   ) : plan.tier === "FREE" ? (
                     <Button variant="outline" className="w-full" disabled>
                       Included
+                    </Button>
+                  ) : isEnterprise ? (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => window.open("mailto:hello@theaux.co.uk?subject=Enterprise%20Plan%20Enquiry", "_blank")}
+                    >
+                      Contact Us
                     </Button>
                   ) : (
                     <Button
