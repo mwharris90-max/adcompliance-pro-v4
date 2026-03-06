@@ -8,7 +8,7 @@ const API_URLS = {
 // Get the configured API base URL
 async function getApiBase() {
   const { apiEnvironment } = await chrome.storage.local.get("apiEnvironment");
-  return API_URLS[apiEnvironment] || API_URLS.production;
+  return API_URLS[apiEnvironment] || API_URLS.development;
 }
 
 // Get stored auth token
@@ -39,7 +39,14 @@ async function handleApiRequest({ method, path, body }) {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: `Server returned non-JSON response (${res.status})` };
+      return { ok: false, status: res.status, data };
+    }
     return { ok: res.ok, status: res.status, data };
   } catch (err) {
     return { ok: false, status: 0, data: { error: err.message } };

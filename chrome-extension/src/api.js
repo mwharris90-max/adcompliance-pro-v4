@@ -9,8 +9,10 @@ export function apiRequest(method, path, body) {
   });
 }
 
-export async function login(email, password) {
-  const res = await apiRequest("POST", "/api/extension/token", { email, password });
+export async function login(loginValue, password) {
+  const isEmail = loginValue.includes("@");
+  const body = isEmail ? { email: loginValue, password } : { username: loginValue, password };
+  const res = await apiRequest("POST", "/api/extension/token", body);
   if (res.ok) {
     await chrome.storage.local.set({ authToken: res.data.token, user: res.data.user });
   }
@@ -31,6 +33,10 @@ export async function getReference() {
 
 export async function runCheck(payload) {
   return apiRequest("POST", "/api/extension/check", payload);
+}
+
+export async function getHistory() {
+  return apiRequest("GET", "/api/extension/history");
 }
 
 export async function isLoggedIn() {

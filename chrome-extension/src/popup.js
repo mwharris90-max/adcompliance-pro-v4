@@ -1,14 +1,24 @@
-import { login, logout, getMe, getReference, runCheck, isLoggedIn, getUser } from "./api.js";
+import { login, logout, getMe, getReference, runCheck, getHistory, isLoggedIn, getUser } from "./api.js";
 
-// DOM refs
+// ─── DOM Refs ───
 const loginScreen = document.getElementById("login-screen");
+const loadingScreen = document.getElementById("loading-screen");
 const mainScreen = document.getElementById("main-screen");
+
 const loginForm = document.getElementById("login-form");
 const loginError = document.getElementById("login-error");
 const loginBtn = document.getElementById("login-btn");
 
-const userName = document.getElementById("user-name");
 const creditBalance = document.getElementById("credit-balance");
+const settingsToggle = document.getElementById("settings-toggle");
+const settingsPanel = document.getElementById("settings-panel");
+const settingsClose = document.getElementById("settings-close");
+const settingsUser = document.getElementById("settings-user");
+const logoutBtn = document.getElementById("logout-btn");
+
+const tabs = document.querySelectorAll(".tab");
+const tabCheck = document.getElementById("tab-check");
+const tabHistory = document.getElementById("tab-history");
 
 const checkForm = document.getElementById("check-form");
 const checkError = document.getElementById("check-error");
@@ -26,50 +36,44 @@ const resultsLink = document.getElementById("results-link");
 const resultsSummary = document.getElementById("results-summary");
 const issuesList = document.getElementById("issues-list");
 
-const logoutBtn = document.getElementById("logout-btn");
+const historyLoading = document.getElementById("history-loading");
+const historyEmpty = document.getElementById("history-empty");
+const historyList = document.getElementById("history-list");
 
-// State
+// ─── State ───
 let referenceData = null;
+let currentUser = null;
+let historyLoaded = false;
 
-// Init
+// ─── Init ───
 async function init() {
   const loggedIn = await isLoggedIn();
   if (loggedIn) {
+    showScreen("loading");
     await showMain();
   } else {
-    showLogin();
+    showScreen("login");
   }
 }
 
-function showLogin() {
-  loginScreen.hidden = false;
-  mainScreen.hidden = true;
+function showScreen(name) {
+  loginScreen.hidden = name !== "login";
+  loadingScreen.hidden = name !== "loading";
+  mainScreen.hidden = name !== "main";
 }
 
 async function showMain() {
-  loginScreen.hidden = true;
-  mainScreen.hidden = false;
-  resultsSection.hidden = true;
-
-  // Load user info
-  const user = await getUser();
-  if (user) {
-    userName.textContent = user.name || user.email;
-  }
-
-  // Fetch fresh data
+  // Fetch user data
   const meRes = await getMe();
   if (!meRes.ok) {
-    // Token expired
     await logout();
-    showLogin();
+    showScreen("login");
     return;
   }
 
-  userName.textContent = meRes.data.user.name || meRes.data.user.email;
-  const balance = meRes.data.creditBalance ?? 0;
-  creditBalance.textContent = `${balance} Checkdits`;
-  creditBalance.className = `badge${balance <= 5 ? " low" : ""}`;
+  currentUser = meRes.data.user;
+  updateBalance(meRes.data.creditBalance ?? 0);
+  updateSettingsUser();
 
   // Load reference data
   if (!referenceData) {
@@ -77,14 +81,34 @@ async function showMain() {
     if (refRes.ok) {
       referenceData = refRes.data;
       populateSelects();
+      restoreSelections();
     }
   }
+
+  // Load API environment setting
+  const { apiEnvironment } = await chrome.storage.local.get("apiEnvironment");
+  const envRadio = document.querySelector(`input[name="api-env"][value="${apiEnvironment || "development"}"]`);
+  if (envRadio) envRadio.checked = true;
+
+  showScreen("main");
+}
+
+function updateBalance(balance) {
+  creditBalance.textContent = `${balance} Checkdits`;
+  creditBalance.className = `badge${balance <= 5 ? " low" : ""}`;
+}
+
+function updateSettingsUser() {
+  if (!currentUser) return;
+  settingsUser.innerHTML = `
+    <div class="name">${escapeHtml(currentUser.name || currentUser.email || "User")}</div>
+    <div class="email">${escapeHtml(currentUser.email || "")}</div>
+  `;
 }
 
 function populateSelects() {
   if (!referenceData) return;
 
-  // Platforms
   platformSelect.innerHTML = '<option value="">Select...</option>';
   for (const p of referenceData.platforms) {
     const opt = document.createElement("option");
@@ -93,7 +117,6 @@ function populateSelects() {
     platformSelect.appendChild(opt);
   }
 
-  // Countries
   countrySelect.innerHTML = '<option value="">Select...</option>';
   for (const c of referenceData.countries) {
     const opt = document.createElement("option");
@@ -102,7 +125,6 @@ function populateSelects() {
     countrySelect.appendChild(opt);
   }
 
-  // Categories
   categorySelect.innerHTML = '<option value="">None</option>';
   for (const c of referenceData.categories) {
     const opt = document.createElement("option");
@@ -112,19 +134,54 @@ function populateSelects() {
   }
 }
 
-// Login
+// Remember last-used selections
+function saveSelections() {
+  chrome.storage.local.set({
+    lastPlatform: platformSelect.value,
+    lastCountry: countrySelect.value,
+    lastCategory: categorySelect.value,
+  });
+}
+
+async function restoreSelections() {
+  const { lastPlatform, lastCountry, lastCategory } = await chrome.storage.local.get([
+    "lastPlatform", "lastCountry", "lastCategory"
+  ]);
+  if (lastPlatform) platformSelect.value = lastPlatform;
+  if (lastCountry) countrySelect.value = lastCountry;
+  if (lastCategory) categorySelect.value = lastCategory;
+}
+
+// ─── Tabs ───
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    tabs.forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+
+    const target = tab.dataset.tab;
+    tabCheck.hidden = target !== "check";
+    tabHistory.hidden = target !== "history";
+
+    if (target === "history" && !historyLoaded) {
+      loadHistory();
+    }
+  });
+});
+
+// ─── Login ───
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.hidden = true;
   loginBtn.disabled = true;
   loginBtn.textContent = "Signing in...";
 
-  const email = document.getElementById("email").value;
+  const loginValue = document.getElementById("login").value;
   const password = document.getElementById("password").value;
 
-  const res = await login(email, password);
+  const res = await login(loginValue, password);
 
   if (res.ok) {
+    showScreen("loading");
     await showMain();
   } else {
     loginError.textContent = res.data?.error || "Login failed";
@@ -135,7 +192,7 @@ loginForm.addEventListener("submit", async (e) => {
   loginBtn.textContent = "Sign In";
 });
 
-// Check
+// ─── Check ───
 checkForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   checkError.hidden = true;
@@ -152,13 +209,11 @@ checkForm.addEventListener("submit", async (e) => {
   const categoryId = categorySelect.value;
 
   if (!headline && !body) {
-    checkError.textContent = "Enter at least a headline or body text.";
-    checkError.hidden = false;
-    checkBtn.disabled = false;
-    btnText.hidden = false;
-    btnLoading.hidden = true;
+    showCheckError("Enter at least a headline or body text.");
     return;
   }
+
+  saveSelections();
 
   const payload = {
     platformIds: [platformId],
@@ -177,39 +232,56 @@ checkForm.addEventListener("submit", async (e) => {
   btnLoading.hidden = true;
 
   if (!res.ok) {
-    checkError.textContent = res.data?.error || "Check failed. Please try again.";
-    checkError.hidden = false;
+    showCheckError(res.data?.error || "Check failed. Please try again.");
     return;
   }
 
   displayResults(res.data);
+  historyLoaded = false; // Force refresh on next tab switch
 
   // Refresh balance
   const meRes = await getMe();
   if (meRes.ok) {
-    const balance = meRes.data.creditBalance ?? 0;
-    creditBalance.textContent = `${balance} Checkdits`;
-    creditBalance.className = `badge${balance <= 5 ? " low" : ""}`;
+    updateBalance(meRes.data.creditBalance ?? 0);
   }
 });
+
+function showCheckError(msg) {
+  checkError.textContent = msg;
+  checkError.hidden = false;
+  checkBtn.disabled = false;
+  btnText.hidden = false;
+  btnLoading.hidden = true;
+}
+
+async function getApiBase() {
+  const { apiEnvironment } = await chrome.storage.local.get("apiEnvironment");
+  return apiEnvironment === "production"
+    ? "https://adcompliance-pro-v4.vercel.app"
+    : "http://localhost:3000";
+}
 
 function displayResults(data) {
   resultsSection.hidden = false;
 
-  // Status badge
   const status = data.overallStatus || "PENDING";
-  resultsStatus.textContent = status === "CLEAN" ? "Clean" : status === "WARNINGS" ? "Warnings" : "Violations";
+  const statusLabel = {
+    CLEAN: "Clean",
+    WARNINGS: "Warnings",
+    VIOLATIONS: "Violations",
+    RUNNING: "Running",
+    PENDING: "Pending",
+  }[status] || status;
+
+  resultsStatus.textContent = statusLabel;
   resultsStatus.className = `status-badge ${status.toLowerCase()}`;
 
-  // Link to full report
-  const { apiEnvironment } = chrome.storage.local.get("apiEnvironment");
-  const base = apiEnvironment === "development" ? "http://localhost:3000" : "https://adcompliance-pro-v4.vercel.app";
-  resultsLink.href = `${base}/app/check/results/${data.checkId}`;
+  getApiBase().then((base) => {
+    resultsLink.href = `${base}/app/check/results/${data.checkId}`;
+  });
 
-  // Summary
   resultsSummary.textContent = data.summary || "";
 
-  // Issues
   issuesList.innerHTML = "";
   const issues = data.issues || [];
   if (issues.length === 0 && status === "CLEAN") {
@@ -230,31 +302,116 @@ function displayResults(data) {
 
   if (issues.length > 10) {
     const more = document.createElement("div");
-    more.style.cssText = "font-size:11px;color:#64748b;padding:4px 0;";
-    more.textContent = `+ ${issues.length - 10} more issues (view full report)`;
+    more.style.cssText = "font-size:11px;color:#64748b;padding:4px 0;text-align:center;";
+    more.textContent = `+ ${issues.length - 10} more issues`;
     issuesList.appendChild(more);
   }
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+// ─── History ───
+async function loadHistory() {
+  historyLoading.hidden = false;
+  historyEmpty.hidden = true;
+  historyList.innerHTML = "";
+
+  const res = await getHistory();
+  historyLoading.hidden = true;
+
+  if (!res.ok) {
+    historyEmpty.hidden = false;
+    historyEmpty.querySelector("p").textContent = "Failed to load history.";
+    return;
+  }
+
+  const checks = res.data.checks || [];
+  if (checks.length === 0) {
+    historyEmpty.hidden = false;
+    return;
+  }
+
+  const apiBase = await getApiBase();
+
+  for (const check of checks) {
+    const a = document.createElement("a");
+    a.className = "history-item";
+    a.href = `${apiBase}/app/check/results/${check.id}`;
+    a.target = "_blank";
+
+    const statusKey = (check.status || "pending").toLowerCase();
+    const date = new Date(check.createdAt);
+    const dateStr = date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    const sourceLabel = check.source === "EXTENSION" ? "Extension" : "Web";
+
+    a.innerHTML = `
+      <span class="history-dot ${statusKey}"></span>
+      <div class="history-info">
+        <div class="history-headline">${escapeHtml(check.headline || check.body || "(No content)")}</div>
+        <div class="history-meta">
+          <span>${dateStr} ${timeStr}</span>
+          <span>${sourceLabel}</span>
+        </div>
+      </div>
+      <span class="history-status ${statusKey}">${capitalize(statusKey)}</span>
+    `;
+
+    historyList.appendChild(a);
+  }
+
+  historyLoaded = true;
 }
 
-// Logout
-logoutBtn.addEventListener("click", async () => {
-  await logout();
-  showLogin();
+// ─── Settings ───
+settingsToggle.addEventListener("click", () => {
+  settingsPanel.hidden = false;
 });
 
-// Listen for content script messages (auto-fill from detected ads)
+settingsClose.addEventListener("click", () => {
+  settingsPanel.hidden = true;
+});
+
+// API environment radios
+document.querySelectorAll('input[name="api-env"]').forEach((radio) => {
+  radio.addEventListener("change", async (e) => {
+    const env = e.target.value;
+    await chrome.storage.local.set({ apiEnvironment: env });
+    // Reset state — user needs to re-login for new environment
+    referenceData = null;
+    historyLoaded = false;
+  });
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await logout();
+  settingsPanel.hidden = true;
+  showScreen("login");
+});
+
+// ─── Content script listener ───
 chrome.runtime.onMessage.addListener((message) => {
   if (message.type === "FILL_AD_CONTENT") {
+    // Switch to check tab
+    tabs.forEach((t) => t.classList.remove("active"));
+    document.querySelector('[data-tab="check"]').classList.add("active");
+    tabCheck.hidden = false;
+    tabHistory.hidden = true;
+
     if (message.headline) document.getElementById("headline").value = message.headline;
     if (message.body) document.getElementById("body-text").value = message.body;
     if (message.cta) document.getElementById("cta").value = message.cta;
   }
 });
 
+// ─── Utils ───
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// ─── Start ───
 init();

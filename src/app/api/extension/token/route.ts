@@ -11,23 +11,30 @@ export async function POST(req: NextRequest) {
   const cors = corsHeaders();
 
   try {
-    const { email, password } = await req.json();
+    const { email, username, password } = await req.json();
+    const login = email || username;
 
-    if (!email || !password) {
+    if (!login || !password) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Username/email and password are required" },
         { status: 400, headers: cors }
       );
     }
 
-    const user = await db.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-      select: { id: true, email: true, name: true, passwordHash: true, role: true },
+    const loginValue = login.toLowerCase().trim();
+    const user = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: loginValue },
+          { username: loginValue },
+        ],
+      },
+      select: { id: true, email: true, username: true, name: true, passwordHash: true, role: true },
     });
 
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid credentials" },
         { status: 401, headers: cors }
       );
     }
@@ -35,12 +42,12 @@ export async function POST(req: NextRequest) {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid credentials" },
         { status: 401, headers: cors }
       );
     }
 
-    const token = createExtensionToken(user.id, user.email);
+    const token = createExtensionToken(user.id, user.email || user.username || user.id);
 
     return NextResponse.json(
       {
