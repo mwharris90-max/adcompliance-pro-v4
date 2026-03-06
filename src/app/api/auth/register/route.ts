@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { WELCOME_CREDITS } from "@/lib/stripe";
+import { authLimiter, getIpKey } from "@/lib/rate-limit";
 
 const registerSchema = z.object({
   token: z.string().min(1),
@@ -13,6 +14,14 @@ const registerSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const rl = authLimiter.check(getIpKey(req));
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: { message: "Too many attempts. Please try again later." } },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {

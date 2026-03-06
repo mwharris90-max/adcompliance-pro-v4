@@ -94,7 +94,10 @@ export async function deductCredits(userId: string, amount: number = 1): Promise
   await db.$transaction([
     db.organisation.update({
       where: { id: user.organisationId },
-      data: { creditBalance: { decrement: amount } },
+      data: {
+        creditBalance: { decrement: amount },
+        monthlyCreditsUsed: { increment: amount },
+      },
     }),
     db.creditTransaction.create({
       data: {

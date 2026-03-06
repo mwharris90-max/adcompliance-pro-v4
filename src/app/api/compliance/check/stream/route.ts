@@ -24,6 +24,7 @@ import {
 import { runAiImageAnalysis, type ImageAnalysisOutput } from "@/lib/ai/runImageAnalysis";
 import { buildCacheKey, getCached, setCached } from "@/lib/cache";
 import { isOverLimit, deductCredits } from "@/lib/usage";
+import { checkLimiter } from "@/lib/rate-limit";
 
 const assetSchema = z.object({
   url: z.string(),
@@ -47,6 +48,15 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  // Rate limit per user
+  const rl = checkLimiter.check(session.user.id);
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please slow down." }),
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+    );
   }
 
   // Usage limit check — soft block when org is over monthly limit
@@ -92,6 +102,7 @@ export async function POST(req: NextRequest) {
           adContent: adContent as Prisma.InputJsonValue,
           assetUrls: resolvedAssetUrls,
           status: "RUNNING",
+          source: "WEB",
         },
       });
 

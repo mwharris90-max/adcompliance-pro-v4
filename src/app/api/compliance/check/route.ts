@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { runComplianceCheck, type AdContentPayload } from "@/lib/ai/runComplianceCheck";
 import { deductCredits } from "@/lib/usage";
+import { checkLimiter } from "@/lib/rate-limit";
 
 const checkSchema = z.object({
   platformIds: z.array(z.string()).min(1, "Select at least one platform"),
@@ -20,6 +21,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { success: false, error: { message: "Unauthorized" } },
       { status: 401 }
+    );
+  }
+
+  const rl = checkLimiter.check(session.user.id);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: { message: "Too many requests. Please slow down." } },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
     );
   }
 
@@ -52,6 +61,7 @@ export async function POST(req: NextRequest) {
       adContent: adContent as Prisma.InputJsonValue,
       assetUrls,
       status: "RUNNING",
+      source: "WEB",
     },
   });
 

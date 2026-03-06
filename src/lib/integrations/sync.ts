@@ -207,6 +207,7 @@ async function triggerComplianceCheck(
       adContent: adContent as Prisma.InputJsonValue,
       assetUrls: ad.assetUrls,
       status: "RUNNING",
+      source: "INTEGRATION",
     },
   });
 

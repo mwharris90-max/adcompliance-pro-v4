@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { verifyExtensionToken } from "@/lib/extension-auth";
 import { isOverLimit, deductCredits } from "@/lib/usage";
+import { checkLimiter } from "@/lib/rate-limit";
 import {
   runComplianceCheck,
   type AdContentPayload,
@@ -31,6 +32,15 @@ export async function POST(req: NextRequest) {
 
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: cors });
+  }
+
+  // Rate limit by userId
+  const rl = checkLimiter.check(auth.userId);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { ...cors, "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+    );
   }
 
   const overLimit = await isOverLimit(auth.userId);

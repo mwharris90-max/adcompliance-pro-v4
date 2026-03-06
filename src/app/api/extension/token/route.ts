@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { createExtensionToken } from "@/lib/extension-auth";
+import { extensionAuthLimiter, getIpKey } from "@/lib/rate-limit";
 
 /**
  * POST /api/extension/token
@@ -9,6 +10,15 @@ import { createExtensionToken } from "@/lib/extension-auth";
  */
 export async function POST(req: NextRequest) {
   const cors = corsHeaders();
+
+  // Rate limit by IP
+  const rl = extensionAuthLimiter.check(getIpKey(req));
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Please try again later." },
+      { status: 429, headers: { ...cors, "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+    );
+  }
 
   try {
     const { email, username, password } = await req.json();

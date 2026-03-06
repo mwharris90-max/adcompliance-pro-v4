@@ -23,6 +23,7 @@ import {
 } from "@/lib/ai/runComplianceCheck";
 import { buildCacheKey, getCached, setCached } from "@/lib/cache";
 import { isOverLimit, getMonthlyUsage, deductCredits } from "@/lib/usage";
+import { bulkLimiter } from "@/lib/rate-limit";
 import { parseGoogleAdsCsv, toAdContentPayload } from "@/lib/bulk/csv-parser";
 import { detectDelta, copyPreviousResults } from "@/lib/bulk/delta-detect";
 import { detectCategoriesForRows, buildDetectionText } from "@/lib/bulk/detect-categories";
@@ -46,6 +47,14 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
+  }
+
+  const rl = bulkLimiter.check(session.user.id);
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many bulk uploads. Please wait before uploading again." }),
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } }
+    );
   }
 
   if (await isOverLimit(session.user.id)) {
@@ -385,6 +394,7 @@ export async function POST(req: NextRequest) {
                 results: cached as unknown as Prisma.InputJsonValue,
                 completedAt: new Date(),
                 bulkRowId: rowRecord.id,
+                source: "BULK",
               },
             });
 
@@ -555,6 +565,7 @@ export async function POST(req: NextRequest) {
                 results: result as unknown as Prisma.InputJsonValue,
                 completedAt: new Date(),
                 bulkRowId: rowRecord.id,
+                source: "BULK",
               },
             });
 

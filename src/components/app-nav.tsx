@@ -78,7 +78,7 @@ const navLinks = [
   },
   {
     href: "/app/checks",
-    label: "History",
+    label: "Compliance",
     icon: History,
   },
   {

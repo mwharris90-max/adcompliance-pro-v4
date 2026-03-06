@@ -66,6 +66,7 @@ export default async function DashboardPage() {
       overallStatus: true,
       platformIds: true,
       countryIds: true,
+      source: true,
       createdAt: true,
     },
   });
@@ -86,6 +87,7 @@ export default async function DashboardPage() {
     ...c,
     platformNames: c.platformIds.map((id) => platformMap.get(id) ?? id),
     effectiveStatus: c.overallStatus ?? c.status,
+    effectiveSource: c.source ?? "WEB",
   }));
 
   // Stats
@@ -346,11 +348,15 @@ export default async function DashboardPage() {
                       )}
                     </div>
 
-                    {/* Countries + date */}
+                    {/* Source + Countries + date */}
                     <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
+                      <span className="bg-slate-100 text-slate-500 rounded px-1.5 py-0.5 text-[10px] uppercase font-medium tracking-wide">
+                        {check.effectiveSource}
+                      </span>
+                      <span className="mx-0.5 text-slate-200">·</span>
                       <Globe className="h-3.5 w-3.5" />
                       <span>{check.countryIds.length}</span>
-                      <span className="mx-1 text-slate-200">·</span>
+                      <span className="mx-0.5 text-slate-200">·</span>
                       <span>
                         {format(new Date(check.createdAt), "d MMM, HH:mm")}
                       </span>
