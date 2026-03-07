@@ -7,6 +7,7 @@ import {
   Tag,
   Globe,
   MonitorPlay,
+  ShieldCheck,
   ShieldAlert,
   GitPullRequest,
   Radar,
@@ -24,7 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+const navItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean; indent?: boolean }[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/usage", label: "Usage", icon: BarChart3 },
   { href: "/admin/credits", label: "Credit Management", icon: Coins },
@@ -34,8 +35,9 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/countries", label: "Countries", icon: Globe },
   { href: "/admin/channel-requirements", label: "Channel Requirements", icon: MonitorPlay },
-  { href: "/admin/legislation", label: "Legislation", icon: Scale },
-  { href: "/admin/platform-policies", label: "Platform Policies", icon: FileText },
+  { href: "/admin/compliance", label: "Compliance Rules", icon: ShieldCheck },
+  { href: "/admin/legislation", label: "Legislation", icon: Scale, indent: true },
+  { href: "/admin/platform-policies", label: "Platform Policies", icon: FileText, indent: true },
   { href: "/admin/certifications", label: "Certifications", icon: ShieldAlert },
   { href: "/admin/proposed-changes", label: "Proposed Changes", icon: GitPullRequest },
   { href: "/admin/scan-sources", label: "Scan Sources", icon: Radar },
@@ -110,9 +112,11 @@ function AdminNav() {
         <li key={item.href}>
           <Link
             href={item.href}
-            className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+            className={`flex items-center gap-3 py-2 rounded-md text-sm text-slate-300 hover:text-white hover:bg-slate-800 transition-colors ${
+              item.indent ? "pl-8 pr-3 text-xs text-slate-400" : "px-3"
+            }`}
           >
-            <item.icon className="h-4 w-4 flex-shrink-0" />
+            <item.icon className={`flex-shrink-0 ${item.indent ? "h-3.5 w-3.5" : "h-4 w-4"}`} />
             {item.label}
           </Link>
         </li>
