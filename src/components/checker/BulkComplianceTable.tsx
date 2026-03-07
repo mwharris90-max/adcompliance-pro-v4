@@ -74,6 +74,7 @@ export interface CategoryOption {
   id: string;
   name: string;
   restrictionLevel?: "allowed" | "restricted" | "prohibited";
+  maturity?: "ALPHA" | "BETA" | "LIVE";
 }
 
 interface BulkComplianceTableProps {

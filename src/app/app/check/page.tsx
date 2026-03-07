@@ -25,6 +25,7 @@ import { ChannelSelector, type Platform } from "@/components/checker/ChannelSele
 import { AdContentForm, defaultAdContent, type AdContent } from "@/components/checker/AdContentForm";
 import { AssetUploader, type UploadedAsset } from "@/components/checker/AssetUploader";
 import { CategorySelector, type Category } from "@/components/checker/CategorySelector";
+import { MaturityBadge } from "@/components/checker/MaturityBadge";
 import { GeoSelector, type Country } from "@/components/checker/GeoSelector";
 import {
   StreamingProgress,
@@ -248,8 +249,9 @@ function ReviewStep({
           {selectedCategoryData.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {selectedCategoryData.map((c) => (
-                <Badge key={c.id} variant="secondary" className="text-xs">
+                <Badge key={c.id} variant="secondary" className="text-xs flex items-center gap-1">
                   {c.name}
+                  <MaturityBadge maturity={c.maturity} />
                 </Badge>
               ))}
             </div>

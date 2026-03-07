@@ -22,6 +22,7 @@ export async function GET() {
         slug: true,
         description: true,
         parentId: true,
+        maturity: true,
         platformRules: { select: { status: true } },
         geoRules: { select: { status: true } },
       },
@@ -46,6 +47,7 @@ export async function GET() {
         description: cat.description,
         parentId: cat.parentId,
         restrictionLevel: worstLevel,
+        maturity: cat.maturity,
       };
     });
 

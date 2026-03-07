@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { AdContent } from "./AdContentForm";
+import { MaturityBadge } from "./MaturityBadge";
 
 export interface Category {
   id: string;
@@ -14,6 +15,7 @@ export interface Category {
   description: string | null;
   parentId: string | null;
   restrictionLevel?: "allowed" | "restricted" | "prohibited";
+  maturity?: "ALPHA" | "BETA" | "LIVE";
 }
 
 interface AiSuggestion {
@@ -214,6 +216,7 @@ export function CategorySelector({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-slate-900">{cat.name}</p>
                     <RestrictionBadge level={cat.restrictionLevel} />
+                    <MaturityBadge maturity={cat.maturity} />
                   </div>
                   {cat.description && (
                     <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
@@ -250,6 +253,7 @@ export function CategorySelector({
             >
               <RestrictionIcon level={cat.restrictionLevel} />
               {cat.name}
+              <MaturityBadge maturity={cat.maturity} />
               <button
                 type="button"
                 onClick={() => remove(cat.id)}

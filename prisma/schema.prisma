@@ -69,6 +69,9 @@ model User {
   reviewedCategories  Category[]             @relation("CategoryReviewer")
   creditTransactions  CreditTransaction[]
   integrations        Integration[]          @relation("ConnectedBy")
+  verifiedLegislation Legislation[]          @relation("LegislationVerifier")
+  verifiedPolicies    PlatformPolicy[]       @relation("PolicyVerifier")
+  verifiedRules       ComplianceRule[]       @relation("RuleVerifier")
 
   @@index([organisationId])
   @@map("users")
@@ -135,6 +138,8 @@ model Platform {
   prohibitionConfigs     ProhibitionConfig[] @relation("ProhibitionPlatform")
   policyArticles         PolicyArticle[]
   policyQuizzes          PolicyQuiz[]
+  platformPolicies       PlatformPolicy[]
+  complianceRules        ComplianceRule[]
 
   @@map("platforms")
 }
@@ -169,19 +174,26 @@ enum ChannelSpecType {
 // PRODUCT / SERVICE CATEGORIES
 // ─────────────────────────────────────────────
 
+enum CategoryMaturity {
+  ALPHA
+  BETA
+  LIVE
+}
+
 model Category {
-  id               String    @id @default(cuid())
-  name             String    @unique
-  slug             String    @unique
+  id               String           @id @default(cuid())
+  name             String           @unique
+  slug             String           @unique
   description      String?
   parentId         String?
-  active           Boolean   @default(true)
-  sortOrder        Int       @default(0)
+  active           Boolean          @default(true)
+  sortOrder        Int              @default(0)
   iconName         String?
+  maturity         CategoryMaturity @default(ALPHA)
   lastReviewedAt   DateTime?
   lastReviewedById String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children   Category[] @relation("CategoryHierarchy")
@@ -195,6 +207,7 @@ model Category {
   prohibitionConfigs ProhibitionConfig[]
   policyArticles     PolicyArticle[]
   policyQuizzes      PolicyQuiz[]
+  complianceRules    ComplianceRule[]
 
   @@map("categories")
 }
@@ -221,6 +234,8 @@ model Country {
   complianceExamples ComplianceExample[]
   prohibitionConfigs ProhibitionConfig[] @relation("ProhibitionCountry")
   policyArticles     PolicyArticle[]
+  legislation        Legislation[]
+  complianceRules    ComplianceRule[]
 
   @@map("countries")
 }
@@ -788,7 +803,8 @@ model PolicyArticle {
   category Category? @relation(fields: [categoryId], references: [id])
   country  Country?  @relation(fields: [countryId], references: [id])
 
-  quizzes PolicyQuiz[]
+  quizzes       PolicyQuiz[]
+  resourceLinks ResourceLink[]
 
   @@index([platformId])
   @@index([categoryId])
@@ -814,9 +830,10 @@ model PolicyQuiz {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  article  PolicyArticle? @relation(fields: [articleId], references: [id])
-  platform Platform?      @relation(fields: [platformId], references: [id])
-  category Category?      @relation(fields: [categoryId], references: [id])
+  article       PolicyArticle? @relation(fields: [articleId], references: [id])
+  platform      Platform?      @relation(fields: [platformId], references: [id])
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  resourceLinks ResourceLink[]
 
   @@index([articleId])
   @@map("policy_quizzes")
@@ -826,4 +843,179 @@ enum QuizDifficulty {
   EASY
   MEDIUM
   HARD
+}
+
+// ─────────────────────────────────────────────
+// LEGISLATION REGISTRY
+// ─────────────────────────────────────────────
+
+enum LegislationType {
+  STATUTE
+  REGULATION
+  DIRECTIVE
+  INDUSTRY_CODE
+  GUIDANCE
+}
+
+model Legislation {
+  id               String           @id @default(cuid())
+  title            String
+  slug             String           @unique
+  type             LegislationType
+  jurisdictionId   String?
+  region           GeographicRegion?
+  sourceUrl        String?
+  summary          String?          @db.Text
+  fullText         String?          @db.Text
+  effectiveDate    DateTime?
+  expiryDate       DateTime?
+  maturity         CategoryMaturity @default(ALPHA)
+  lastVerifiedAt   DateTime?
+  lastVerifiedById String?
+  chatHistory      Json?
+  tags             String[]
+  active           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  jurisdiction     Country?          @relation(fields: [jurisdictionId], references: [id])
+  verifiedBy       User?             @relation("LegislationVerifier", fields: [lastVerifiedById], references: [id])
+  complianceRules  ComplianceRule[]
+  platformPolicies PlatformPolicyLegislation[]
+  resourceLinks    ResourceLink[]
+
+  @@index([jurisdictionId])
+  @@index([type])
+  @@map("legislation")
+}
+
+// ─────────────────────────────────────────────
+// PLATFORM POLICIES
+// ─────────────────────────────────────────────
+
+model PlatformPolicy {
+  id               String           @id @default(cuid())
+  title            String
+  slug             String           @unique
+  platformId       String
+  sourceUrl        String?
+  summary          String?          @db.Text
+  fullText         String?          @db.Text
+  effectiveDate    DateTime?
+  maturity         CategoryMaturity @default(ALPHA)
+  lastVerifiedAt   DateTime?
+  lastVerifiedById String?
+  chatHistory      Json?
+  active           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  platform         Platform                   @relation(fields: [platformId], references: [id])
+  verifiedBy       User?                      @relation("PolicyVerifier", fields: [lastVerifiedById], references: [id])
+  complianceRules  ComplianceRule[]
+  legislation      PlatformPolicyLegislation[]
+  resourceLinks    ResourceLink[]
+
+  @@index([platformId])
+  @@map("platform_policies")
+}
+
+// Join table: which legislation backs which platform policies
+model PlatformPolicyLegislation {
+  id               String @id @default(cuid())
+  platformPolicyId String
+  legislationId    String
+
+  platformPolicy PlatformPolicy @relation(fields: [platformPolicyId], references: [id], onDelete: Cascade)
+  legislation    Legislation    @relation(fields: [legislationId], references: [id], onDelete: Cascade)
+
+  @@unique([platformPolicyId, legislationId])
+  @@map("platform_policy_legislation")
+}
+
+// ─────────────────────────────────────────────
+// COMPLIANCE RULES (unified rule entity)
+// ─────────────────────────────────────────────
+
+enum ComplianceRuleSource {
+  LEGISLATION
+  PLATFORM_POLICY
+  PLATFORM_INDEPENDENT
+}
+
+model ComplianceRule {
+  id                 String               @id @default(cuid())
+  categoryId         String
+  platformId         String?
+  countryId          String?
+
+  sourceType         ComplianceRuleSource
+  legislationId      String?
+  platformPolicyId   String?
+
+  status             RuleStatus           @default(UNKNOWN)
+  title              String
+  description        String?              @db.Text
+  conditions         Json?
+  aiCheckInstructions String?             @db.Text
+
+  maturity           CategoryMaturity     @default(ALPHA)
+  lastVerifiedAt     DateTime?
+  lastVerifiedById   String?
+  sortOrder          Int                  @default(0)
+  active             Boolean              @default(true)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  // Sync tracking — which runtime rule was created from this
+  syncedPlatformRuleId String?
+  syncedGeoRuleId      String?
+
+  category         Category        @relation(fields: [categoryId], references: [id])
+  platform         Platform?       @relation(fields: [platformId], references: [id])
+  country          Country?        @relation(fields: [countryId], references: [id])
+  legislation      Legislation?    @relation(fields: [legislationId], references: [id])
+  platformPolicy   PlatformPolicy? @relation(fields: [platformPolicyId], references: [id])
+  verifiedBy       User?           @relation("RuleVerifier", fields: [lastVerifiedById], references: [id])
+  resourceLinks    ResourceLink[]
+
+  @@index([categoryId])
+  @@index([legislationId])
+  @@index([platformPolicyId])
+  @@index([sourceType])
+  @@map("compliance_rules")
+}
+
+// ─────────────────────────────────────────────
+// RESOURCE LINKS (cross-reference learning content to sources)
+// ─────────────────────────────────────────────
+
+enum ResourceTargetType {
+  LEGISLATION
+  PLATFORM_POLICY
+  COMPLIANCE_RULE
+}
+
+model ResourceLink {
+  id               String             @id @default(cuid())
+  articleId        String?
+  quizId           String?
+  targetType       ResourceTargetType
+  legislationId    String?
+  platformPolicyId String?
+  complianceRuleId String?
+  sortOrder        Int                @default(0)
+  createdAt        DateTime           @default(now())
+
+  article        PolicyArticle?  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  quiz           PolicyQuiz?     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  legislation    Legislation?    @relation(fields: [legislationId], references: [id], onDelete: Cascade)
+  platformPolicy PlatformPolicy? @relation(fields: [platformPolicyId], references: [id], onDelete: Cascade)
+  complianceRule ComplianceRule? @relation(fields: [complianceRuleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+  @@index([legislationId])
+  @@index([platformPolicyId])
+  @@index([complianceRuleId])
+  @@map("resource_links")
 }

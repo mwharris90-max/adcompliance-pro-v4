@@ -21,6 +21,8 @@ import {
   Ban,
   Coins,
   BookOpen,
+  Scale,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -40,6 +42,8 @@ const navItems = [
   { href: "/admin/proposed-changes", label: "Proposed Changes", icon: GitPullRequest },
   { href: "/admin/scan-sources", label: "Scan Sources", icon: Radar },
   { href: "/admin/prohibitions", label: "Prohibitions", icon: Ban },
+  { href: "/admin/legislation", label: "Legislation", icon: Scale },
+  { href: "/admin/platform-policies", label: "Platform Policies", icon: FileText },
   { href: "/admin/ai-training", label: "AI Training", icon: BrainCircuit },
   { href: "/admin/learn", label: "Resources", icon: BookOpen },
 ];

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { MaturityBadge } from "@/components/checker/MaturityBadge";
 
 // ─── Icon mapping ─────────────────────────────────────────────────────────────
 
@@ -46,6 +47,8 @@ function GroupIcon({ name, className }: { name: string | null; className?: strin
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Maturity = "ALPHA" | "BETA" | "LIVE";
+
 interface CategoryGroup {
   id: string;
   name: string;
@@ -59,6 +62,7 @@ interface CategoryGroup {
   oldestReview: string | null;
   newestReview: string | null;
   restrictionLevel: "allowed" | "restricted" | "prohibited";
+  maturity: Maturity;
 }
 
 interface CategoryChild {
@@ -68,6 +72,7 @@ interface CategoryChild {
   description: string | null;
   active: boolean;
   parentId: string | null;
+  maturity: Maturity;
   lastReviewedAt: string | null;
   reviewedByName: string | null;
   ruleCount: number;
@@ -130,6 +135,9 @@ export default function CategoriesPage() {
   const [deleteTarget, setDeleteTarget] = useState<CategoryChild | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Maturity filter
+  const [maturityFilter, setMaturityFilter] = useState<"all" | Maturity>("all");
 
   // Auto-update state
   const [autoUpdateOpen, setAutoUpdateOpen] = useState(false);
@@ -306,9 +314,27 @@ export default function CategoriesPage() {
           </p>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input placeholder="Search groups..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex items-center gap-4">
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input placeholder="Search groups..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-0.5">
+            {(["all", "ALPHA", "BETA", "LIVE"] as const).map((level) => (
+              <button
+                key={level}
+                onClick={() => setMaturityFilter(level)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors",
+                  maturityFilter === level
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-100",
+                )}
+              >
+                {level === "all" ? "All" : level === "ALPHA" ? "Alpha" : level === "BETA" ? "Beta" : "Live"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -317,7 +343,7 @@ export default function CategoriesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {groups.map((group) => {
+            {groups.filter((g) => maturityFilter === "all" || g.maturity === maturityFilter).map((group) => {
               const reviewStatus = group.childCount === 0 ? "never"
                 : group.reviewedCount === group.childCount && group.oldestReview && reviewFreshness(group.oldestReview) === "fresh" ? "fresh"
                 : group.reviewedCount > 0 ? "stale"
@@ -329,13 +355,16 @@ export default function CategoriesPage() {
                   onClick={() => openGroup(group)}
                   className="group relative flex flex-col items-start rounded-xl border border-slate-200 bg-white p-5 text-left hover:border-slate-300 hover:shadow-md transition-all"
                 >
-                  {/* Restriction indicator */}
-                  <div className={cn(
-                    "absolute top-3 right-3 w-2.5 h-2.5 rounded-full",
-                    group.restrictionLevel === "prohibited" && "bg-red-500",
-                    group.restrictionLevel === "restricted" && "bg-amber-500",
-                    group.restrictionLevel === "allowed" && "bg-emerald-500",
-                  )} />
+                  {/* Restriction indicator + maturity badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <MaturityBadge maturity={group.maturity} />
+                    <div className={cn(
+                      "w-2.5 h-2.5 rounded-full",
+                      group.restrictionLevel === "prohibited" && "bg-red-500",
+                      group.restrictionLevel === "restricted" && "bg-amber-500",
+                      group.restrictionLevel === "allowed" && "bg-emerald-500",
+                    )} />
+                  </div>
 
                   {/* Icon */}
                   <div className={cn(
@@ -425,6 +454,29 @@ export default function CategoriesPage() {
             {scanningAi ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1.5" />}
             Auto-update
           </Button>
+          <select
+            defaultValue=""
+            onChange={(e) => {
+              const maturity = e.target.value as Maturity;
+              if (!maturity || !selectedGroup) return;
+              Promise.all(
+                children.map((c) =>
+                  fetch(`/api/admin/categories/${c.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ maturity }),
+                  })
+                )
+              ).then(() => fetchChildren(selectedGroup.id));
+              e.target.value = "";
+            }}
+            className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-300"
+          >
+            <option value="" disabled>Set all maturity…</option>
+            <option value="ALPHA">Alpha</option>
+            <option value="BETA">Beta</option>
+            <option value="LIVE">Live</option>
+          </select>
           <Button variant="outline" size="sm" onClick={markAllReviewed}>
             <CheckCircle2 className="h-4 w-4 mr-1.5" />
             Mark all reviewed
@@ -452,6 +504,7 @@ export default function CategoriesPage() {
               <TableHead className="w-8" />
               <TableHead>Name</TableHead>
               <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead className="w-[100px]">Maturity</TableHead>
               <TableHead className="text-center w-[80px]">Rules</TableHead>
               <TableHead className="w-[140px]">Last Reviewed</TableHead>
               <TableHead className="text-center w-[80px]">Active</TableHead>
@@ -461,13 +514,13 @@ export default function CategoriesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={8} className="text-center py-8 text-slate-400">
                   <Loader2 className="h-5 w-5 animate-spin inline-block" />
                 </TableCell>
               </TableRow>
             ) : children.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-slate-400">No sub-categories found.</TableCell>
+                <TableCell colSpan={8} className="text-center py-8 text-slate-400">No sub-categories found.</TableCell>
               </TableRow>
             ) : (
               children.map((cat) => {
@@ -492,6 +545,29 @@ export default function CategoriesPage() {
                       )}>
                         {cat.restrictionLevel === "prohibited" ? "Prohibited" : cat.restrictionLevel === "restricted" ? "Restricted" : "Allowed"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        value={cat.maturity}
+                        onChange={(e) => {
+                          const maturity = e.target.value as Maturity;
+                          fetch(`/api/admin/categories/${cat.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ maturity }),
+                          }).then(() => { if (selectedGroup) fetchChildren(selectedGroup.id); });
+                        }}
+                        className={cn(
+                          "text-[11px] font-medium rounded-md border px-2 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1",
+                          cat.maturity === "ALPHA" && "border-amber-200 bg-amber-50 text-amber-700 focus:ring-amber-300",
+                          cat.maturity === "BETA" && "border-blue-200 bg-blue-50 text-blue-700 focus:ring-blue-300",
+                          cat.maturity === "LIVE" && "border-emerald-200 bg-emerald-50 text-emerald-700 focus:ring-emerald-300",
+                        )}
+                      >
+                        <option value="ALPHA">Alpha</option>
+                        <option value="BETA">Beta</option>
+                        <option value="LIVE">Live</option>
+                      </select>
                     </TableCell>
                     <TableCell className="text-center text-xs text-slate-500">{cat.ruleCount}</TableCell>
                     <TableCell>

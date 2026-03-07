@@ -10,6 +10,7 @@ const patchSchema = z.object({
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/).optional(),
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
+  maturity: z.enum(["ALPHA", "BETA", "LIVE"]).optional(),
   markReviewed: z.boolean().optional(),
 });
 

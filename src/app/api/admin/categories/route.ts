@@ -10,6 +10,7 @@ const createSchema = z.object({
   active: z.boolean().default(true),
   parentId: z.string().optional(),
   iconName: z.string().optional(),
+  maturity: z.enum(["ALPHA", "BETA", "LIVE"]).default("ALPHA"),
 });
 
 export async function GET(req: NextRequest) {
@@ -36,9 +37,11 @@ export async function GET(req: NextRequest) {
         description: true,
         iconName: true,
         active: true,
+        maturity: true,
         children: {
           select: {
             id: true,
+            maturity: true,
             lastReviewedAt: true,
             active: true,
             platformRules: { select: { status: true } },
@@ -76,6 +79,13 @@ export async function GET(req: NextRequest) {
         if (worstLevel === "prohibited") break;
       }
 
+      // Worst maturity across children (ALPHA < BETA < LIVE)
+      const MATURITY_RANK: Record<string, number> = { ALPHA: 0, BETA: 1, LIVE: 2 };
+      const childMaturities = g.children.map((c) => c.maturity);
+      const worstMaturity = childMaturities.length > 0
+        ? childMaturities.reduce((worst, m) => MATURITY_RANK[m] < MATURITY_RANK[worst] ? m : worst)
+        : g.maturity;
+
       return {
         id: g.id,
         name: g.name,
@@ -89,6 +99,7 @@ export async function GET(req: NextRequest) {
         oldestReview,
         newestReview,
         restrictionLevel: worstLevel,
+        maturity: worstMaturity,
       };
     });
 
@@ -114,6 +125,7 @@ export async function GET(req: NextRequest) {
       sortOrder: true,
       parentId: true,
       iconName: true,
+      maturity: true,
       lastReviewedAt: true,
       lastReviewedById: true,
       reviewedBy: { select: { name: true } },
@@ -145,6 +157,7 @@ export async function GET(req: NextRequest) {
       sortOrder: cat.sortOrder,
       parentId: cat.parentId,
       iconName: cat.iconName,
+      maturity: cat.maturity,
       lastReviewedAt: cat.lastReviewedAt,
       reviewedByName: cat.reviewedBy?.name ?? null,
       ruleCount: cat._count.platformRules + cat._count.geoRules,
