@@ -606,7 +606,6 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
 
   const findSources = async () => {
     setFindingSources(true);
-    setSources(null);
     setSourcesResponse(null);
     const res = await fetch(`/api/admin/compliance-rules/${rule.id}/ai`, {
       method: "POST",
@@ -616,14 +615,23 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
     const json = await res.json();
     if (json.success) {
       setSourcesResponse(json.response);
-      if (json.sources) setSources(json.sources as SuggestedSource[]);
+      if (json.sources) {
+        const newSources = json.sources as SuggestedSource[];
+        setSources((prev) => {
+          if (!prev) return newSources;
+          // Deduplicate by title
+          const existing = new Set(prev.map((s) => s.title));
+          const unique = newSources.filter((s) => !existing.has(s.title));
+          return [...prev, ...unique];
+        });
+      }
     } else {
       setSourcesResponse(json.error?.message ?? "Source search failed");
     }
     setFindingSources(false);
   };
 
-  const acceptSource = async (src: SuggestedSource) => {
+  const acceptSource = async (src: SuggestedSource, index: number) => {
     setLinkingSaving(true);
     const res = await fetch(`/api/admin/compliance-rules/${rule.id}/link-source`, {
       method: "POST",
@@ -640,9 +648,16 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
     const json = await res.json();
     setLinkingSaving(false);
     if (json.success) {
-      setSources(null);
+      // Remove accepted source from list, keep the rest
+      setSources((prev) => prev ? prev.filter((_, i) => i !== index) : null);
       onUpdate();
+    } else {
+      alert(json.error?.message ?? "Failed to link source");
     }
+  };
+
+  const rejectSource = (index: number) => {
+    setSources((prev) => prev ? prev.filter((_, i) => i !== index) : null);
   };
 
   const addManualSource = async () => {
@@ -766,16 +781,14 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
               </Button>
             )}
             {!hasSource && (
-              <>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualSource(!showManualSource)}>
-                  <Plus className="h-3 w-3 mr-1" />Add Manually
-                </Button>
-                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={findSources} disabled={findingSources}>
-                  {findingSources ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <SearchCheck className="h-3 w-3 mr-1" />}
-                  Find Sources
-                </Button>
-              </>
+              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualSource(!showManualSource)}>
+                <Plus className="h-3 w-3 mr-1" />Add Manually
+              </Button>
             )}
+            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={findSources} disabled={findingSources}>
+              {findingSources ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <SearchCheck className="h-3 w-3 mr-1" />}
+              Find Sources
+            </Button>
           </div>
         </div>
 
@@ -873,18 +886,24 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
                         <ExternalLink className="h-3.5 w-3.5" />
                       </a>
                     )}
-                    {!hasSource && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={() => acceptSource(src)}
-                        disabled={linkingSaving}
-                      >
-                        {linkingSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
-                        Accept
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => acceptSource(src, i)}
+                      disabled={linkingSaving}
+                    >
+                      {linkingSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                      Accept
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-slate-400 hover:text-red-500"
+                      onClick={() => rejectSource(i)}
+                    >
+                      <X className="h-3 w-3 mr-1" />Reject
+                    </Button>
                   </div>
                 </div>
               </div>
