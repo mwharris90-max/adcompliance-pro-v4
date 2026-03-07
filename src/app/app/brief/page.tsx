@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Monitor,
   Tag,
@@ -16,7 +17,13 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Printer,
+  Download,
+  BookOpen,
+  Sparkles,
+  Ban,
+  CheckCircle2,
+  Info,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface Platform {
   id: string;
@@ -39,6 +46,18 @@ interface Country {
   id: string;
   name: string;
   code: string;
+}
+
+interface GuidanceItem {
+  text: string;
+  source: string;
+}
+
+interface Guidance {
+  prohibited: GuidanceItem[];
+  must: GuidanceItem[];
+  should: GuidanceItem[];
+  shouldNot: GuidanceItem[];
 }
 
 interface BriefData {
@@ -93,7 +112,7 @@ interface BriefData {
   }[];
 }
 
-// ─── Multi-Select Component ──────────────────────────────────────────────────
+// ── Multi-Select ─────────────────────────────────────────────────────────────
 
 function MultiSelect({
   label,
@@ -129,7 +148,9 @@ function MultiSelect({
         onClick={() => setOpen(!open)}
         className={cn(
           "w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors",
-          open ? "border-[#1A56DB] ring-1 ring-[#1A56DB]/20" : "border-slate-200 hover:border-slate-300",
+          open
+            ? "border-[#1A56DB] ring-1 ring-[#1A56DB]/20"
+            : "border-slate-200 hover:border-slate-300",
           selected.length === 0 && "text-slate-400"
         )}
       >
@@ -144,7 +165,9 @@ function MultiSelect({
           ) : (
             <span className="text-slate-900">
               {selectedNames.slice(0, 2).join(", ")}{" "}
-              <span className="text-slate-400">+{selectedNames.length - 2}</span>
+              <span className="text-slate-400">
+                +{selectedNames.length - 2}
+              </span>
             </span>
           )}
         </div>
@@ -214,7 +237,7 @@ function MultiSelect({
   );
 }
 
-// ─── Collapsible Section ─────────────────────────────────────────────────────
+// ── Collapsible Section ──────────────────────────────────────────────────────
 
 function Section({
   title,
@@ -261,36 +284,61 @@ function Section({
           <ChevronRight className="h-4 w-4 text-slate-400" />
         )}
       </button>
-      {open && <div className="px-5 pb-5 border-t border-slate-100">{children}</div>}
+      {open && (
+        <div className="px-5 pb-5 border-t border-slate-100">{children}</div>
+      )}
     </div>
   );
 }
 
-// ─── Status Badge ────────────────────────────────────────────────────────────
+// ── Guidance Item Card ───────────────────────────────────────────────────────
 
-function RuleStatusBadge({ status }: { status: string }) {
-  if (status === "PROHIBITED")
-    return (
-      <Badge className="bg-red-100 text-red-700 border-red-200 gap-1">
-        <ShieldX className="h-3 w-3" /> Prohibited
-      </Badge>
-    );
-  if (status === "RESTRICTED")
-    return (
-      <Badge className="bg-amber-100 text-amber-700 border-amber-200 gap-1">
-        <ShieldAlert className="h-3 w-3" /> Restricted
-      </Badge>
-    );
-  if (status === "ALLOWED")
-    return (
-      <Badge className="bg-green-100 text-green-700 border-green-200 gap-1">
-        <ShieldCheck className="h-3 w-3" /> Allowed
-      </Badge>
-    );
-  return <Badge variant="secondary">Unknown</Badge>;
+function GuidanceCard({
+  item,
+  variant,
+}: {
+  item: GuidanceItem;
+  variant: "prohibited" | "must" | "should" | "shouldNot";
+}) {
+  const styles = {
+    prohibited: {
+      bg: "bg-red-50 border-red-100",
+      icon: <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />,
+      sourceColor: "text-red-600",
+    },
+    must: {
+      bg: "bg-red-50/70 border-red-100",
+      icon: <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />,
+      sourceColor: "text-red-600",
+    },
+    should: {
+      bg: "bg-blue-50 border-blue-100",
+      icon: <CheckCircle2 className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />,
+      sourceColor: "text-blue-600",
+    },
+    shouldNot: {
+      bg: "bg-amber-50 border-amber-100",
+      icon: <ShieldAlert className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />,
+      sourceColor: "text-amber-600",
+    },
+  };
+
+  const s = styles[variant];
+
+  return (
+    <div className={cn("flex items-start gap-3 p-3 rounded-lg border", s.bg)}>
+      {s.icon}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-slate-900">{item.text}</p>
+        {item.source && (
+          <p className={cn("text-xs mt-1", s.sourceColor)}>{item.source}</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
-// ─── Spec Type Labels ────────────────────────────────────────────────────────
+// ── Spec Type Labels ─────────────────────────────────────────────────────────
 
 const specTypeLabels: Record<string, string> = {
   CHARACTER_LIMIT: "Character Limit",
@@ -299,7 +347,7 @@ const specTypeLabels: Record<string, string> = {
   DIMENSIONS: "Dimensions",
 };
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function BriefPage() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -312,9 +360,11 @@ export default function BriefPage() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   const [brief, setBrief] = useState<BriefData | null>(null);
+  const [guidance, setGuidance] = useState<Guidance | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [generatingGuidance, setGeneratingGuidance] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
-  // Fetch reference data
   useEffect(() => {
     Promise.all([
       fetch("/api/platforms").then((r) => r.json()),
@@ -337,8 +387,10 @@ export default function BriefPage() {
 
     setGenerating(true);
     setBrief(null);
+    setGuidance(null);
 
     try {
+      // Fetch raw brief data
       const res = await fetch("/api/compliance/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -357,11 +409,73 @@ export default function BriefPage() {
 
       const data = await res.json();
       setBrief(data.brief);
+
+      // Now generate AI guidance
+      setGeneratingGuidance(true);
+      const guidanceRes = await fetch("/api/compliance/brief/guidance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platformIds: selectedPlatforms,
+          categoryIds: selectedCategories,
+          countryIds: selectedCountries,
+        }),
+      });
+
+      if (guidanceRes.ok) {
+        const guidanceData = await guidanceRes.json();
+        setGuidance(guidanceData.guidance);
+      } else {
+        toast.error("AI guidance unavailable — showing raw rules below");
+      }
+
       toast.success("Compliance brief generated");
     } catch {
       toast.error("Failed to generate brief");
     } finally {
       setGenerating(false);
+      setGeneratingGuidance(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!guidance) {
+      toast.error("Generate guidance first before downloading PDF");
+      return;
+    }
+
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch("/api/compliance/brief/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platformIds: selectedPlatforms,
+          categoryIds: selectedCategories,
+          countryIds: selectedCountries,
+          guidance,
+        }),
+      });
+
+      if (!res.ok) {
+        toast.error("Failed to generate PDF");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `compliance-brief-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF downloaded");
+    } catch {
+      toast.error("Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -373,10 +487,6 @@ export default function BriefPage() {
     );
   }
 
-  const hasProhibitions = (brief?.prohibitions.length ?? 0) > 0;
-  const hasRestrictions = (brief?.restrictions.length ?? 0) > 0;
-  const hasGeoRegs = (brief?.geoRegulations.length ?? 0) > 0;
-  const hasWarnings = (brief?.regulatoryWarnings.length ?? 0) > 0;
   const hasTechSpecs = (brief?.technicalSpecs.length ?? 0) > 0;
 
   return (
@@ -387,8 +497,8 @@ export default function BriefPage() {
           Compliance Brief
         </h1>
         <p className="text-slate-500 mt-1 text-sm">
-          Generate a pre-check compliance brief showing all applicable rules,
-          restrictions, and technical requirements for your ad campaign.
+          Generate a plain-language compliance brief showing what you must,
+          should, and should not do for your ad campaign.
         </p>
       </div>
 
@@ -459,7 +569,7 @@ export default function BriefPage() {
                 </>
               ) : (
                 <>
-                  <FileText className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-2 h-4 w-4" />
                   Generate Brief
                 </>
               )}
@@ -471,7 +581,7 @@ export default function BriefPage() {
       {/* Brief output */}
       {brief && (
         <div className="space-y-4" id="brief-output">
-          {/* Brief header */}
+          {/* Brief header with actions */}
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -488,15 +598,22 @@ export default function BriefPage() {
                 })}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.print()}
-              className="gap-1.5"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Print
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadPdf}
+                disabled={!guidance || downloadingPdf}
+                className="gap-1.5"
+              >
+                {downloadingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Download PDF
+              </Button>
+            </div>
           </div>
 
           {/* Scope summary */}
@@ -518,7 +635,11 @@ export default function BriefPage() {
                     <p className="text-xs text-slate-500 mb-1">Categories</p>
                     <div className="flex flex-wrap gap-1">
                       {brief.categories.map((c) => (
-                        <Badge key={c.id} variant="secondary" className="text-xs">
+                        <Badge
+                          key={c.id}
+                          variant="secondary"
+                          className="text-xs"
+                        >
                           {c.name}
                         </Badge>
                       ))}
@@ -539,197 +660,113 @@ export default function BriefPage() {
             </CardContent>
           </Card>
 
-          {/* Prohibitions */}
-          {hasProhibitions && (
-            <Section
-              title="Prohibited Categories"
-              icon={ShieldX}
-              iconColor="bg-red-500"
-              count={brief.prohibitions.length}
-            >
-              <div className="mt-4 space-y-3">
-                {brief.prohibitions.map((p, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100"
-                  >
-                    <ShieldX className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-red-900">
-                        {p.category} on {p.platform}
-                      </p>
-                      {p.notes && (
-                        <p className="text-xs text-red-700 mt-1">{p.notes}</p>
-                      )}
-                      {p.referenceUrl && (
-                        <a
-                          href={p.referenceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-red-600 hover:underline mt-1"
-                        >
-                          <ExternalLink className="h-3 w-3" /> Policy reference
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Section>
+          {/* AI Guidance loading state */}
+          {generatingGuidance && !guidance && (
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="py-12 text-center">
+                <Sparkles className="h-8 w-8 text-[#1A56DB] mx-auto mb-3 animate-pulse" />
+                <h3 className="font-semibold text-slate-900 mb-1">
+                  Generating plain-language guidance...
+                </h3>
+                <p className="text-sm text-slate-500">
+                  AI is translating compliance rules into clear, actionable
+                  guidance for your team.
+                </p>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Regulatory warnings */}
-          {hasWarnings && (
-            <Section
-              title="Regulatory Warnings"
-              icon={AlertTriangle}
-              iconColor="bg-amber-500"
-              count={brief.regulatoryWarnings.length}
-            >
-              <div className="mt-4 space-y-3">
-                {brief.regulatoryWarnings.map((w, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg bg-amber-50 border border-amber-100"
-                  >
-                    <p className="text-sm font-medium text-amber-900">
-                      {w.warningTitle}
-                    </p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      {w.warningMessage}
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
-                        {w.category}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {w.country}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {w.platform}
-                      </Badge>
-                    </div>
+          {/* AI Guidance — Must / Should / Should Not */}
+          {guidance && (
+            <>
+              {/* Prohibited */}
+              {guidance.prohibited.length > 0 && (
+                <Section
+                  title="Prohibited — Do Not Advertise"
+                  icon={Ban}
+                  iconColor="bg-red-600"
+                  count={guidance.prohibited.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.prohibited.map((item, i) => (
+                      <GuidanceCard
+                        key={i}
+                        item={item}
+                        variant="prohibited"
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {/* Restrictions */}
-          {hasRestrictions && (
-            <Section
-              title="Restricted Categories"
-              icon={ShieldAlert}
-              iconColor="bg-amber-500"
-              count={brief.restrictions.length}
-            >
-              <div className="mt-4 space-y-3">
-                {brief.restrictions.map((r, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg bg-amber-50/50 border border-slate-200"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <RuleStatusBadge status="RESTRICTED" />
-                      <span className="text-sm font-medium text-slate-900">
-                        {r.category} on {r.platform}
-                      </span>
-                    </div>
-                    {r.notes && (
-                      <p className="text-xs text-slate-600 mt-1">{r.notes}</p>
-                    )}
-                    {r.conditions != null && (
-                      <div className="mt-2 text-xs text-slate-500 bg-white rounded p-2 border border-slate-100">
-                        <p className="font-medium text-slate-700 mb-1">
-                          Conditions:
-                        </p>
-                        <pre className="whitespace-pre-wrap text-[11px]">
-                          {typeof r.conditions === "string"
-                            ? r.conditions
-                            : JSON.stringify(r.conditions as Record<string, unknown>, null, 2)}
-                        </pre>
-                      </div>
-                    )}
-                    {r.referenceUrl && (
-                      <a
-                        href={r.referenceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-[#1A56DB] hover:underline mt-2"
-                      >
-                        <ExternalLink className="h-3 w-3" /> Policy reference
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {/* Geographic regulations */}
-          {hasGeoRegs && (
-            <Section
-              title="Geographic Regulations"
-              icon={Scale}
-              iconColor="bg-purple-500"
-              count={brief.geoRegulations.reduce(
-                (sum, g) => sum + g.rules.length,
-                0
+                </Section>
               )}
-            >
-              <div className="mt-4 space-y-4">
-                {brief.geoRegulations.map((group, gi) => (
-                  <div key={gi}>
-                    <h4 className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                      <Globe className="h-3.5 w-3.5 text-slate-400" />
-                      {group.country}
-                    </h4>
-                    <div className="space-y-2 ml-5">
-                      {group.rules.map((rule, ri) => (
-                        <div
-                          key={ri}
-                          className="p-3 rounded-lg border border-slate-200 bg-white"
-                        >
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <RuleStatusBadge status={rule.status} />
-                            <span className="text-sm text-slate-900">
-                              {rule.category}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              ({rule.platform})
-                            </span>
-                          </div>
-                          {rule.notes && (
-                            <p className="text-xs text-slate-600 mt-1.5">
-                              {rule.notes}
-                            </p>
-                          )}
-                          {rule.restrictions != null && (
-                            <div className="mt-2 text-xs text-slate-500 bg-slate-50 rounded p-2">
-                              <pre className="whitespace-pre-wrap text-[11px]">
-                                {typeof rule.restrictions === "string"
-                                  ? rule.restrictions
-                                  : JSON.stringify(rule.restrictions as Record<string, unknown>, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                          {rule.legislationUrl && (
-                            <a
-                              href={rule.legislationUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-[#1A56DB] hover:underline mt-1.5"
-                            >
-                              <ExternalLink className="h-3 w-3" /> Legislation
-                            </a>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+
+              {/* Must */}
+              {guidance.must.length > 0 && (
+                <Section
+                  title="Must — Mandatory Requirements"
+                  icon={ShieldX}
+                  iconColor="bg-red-500"
+                  count={guidance.must.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.must.map((item, i) => (
+                      <GuidanceCard key={i} item={item} variant="must" />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Section>
+                </Section>
+              )}
+
+              {/* Should */}
+              {guidance.should.length > 0 && (
+                <Section
+                  title="Should — Recommended Best Practice"
+                  icon={CheckCircle2}
+                  iconColor="bg-blue-500"
+                  count={guidance.should.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.should.map((item, i) => (
+                      <GuidanceCard key={i} item={item} variant="should" />
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* Should Not */}
+              {guidance.shouldNot.length > 0 && (
+                <Section
+                  title="Should Not — Avoid"
+                  icon={ShieldAlert}
+                  iconColor="bg-amber-500"
+                  count={guidance.shouldNot.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.shouldNot.map((item, i) => (
+                      <GuidanceCard key={i} item={item} variant="shouldNot" />
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* No guidance at all */}
+              {guidance.prohibited.length === 0 &&
+                guidance.must.length === 0 &&
+                guidance.should.length === 0 &&
+                guidance.shouldNot.length === 0 && (
+                  <Card className="border-slate-200 shadow-sm">
+                    <CardContent className="py-12 text-center">
+                      <ShieldCheck className="h-10 w-10 text-green-400 mx-auto mb-3" />
+                      <h3 className="font-semibold text-slate-900 mb-1">
+                        No specific compliance requirements found
+                      </h3>
+                      <p className="text-sm text-slate-500 max-w-md mx-auto">
+                        No restrictions, prohibitions, or special requirements
+                        were found for this combination. Standard advertising
+                        guidelines apply.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+            </>
           )}
 
           {/* Technical specifications */}
@@ -742,6 +779,7 @@ export default function BriefPage() {
                 (sum, g) => sum + g.specs.length,
                 0
               )}
+              defaultOpen={false}
             >
               <div className="mt-4 space-y-4">
                 {brief.technicalSpecs.map((group, gi) => (
@@ -788,57 +826,37 @@ export default function BriefPage() {
             </Section>
           )}
 
-          {/* Allowed rules (clean pass) */}
-          {brief.allowedRules.length > 0 && (
-            <Section
-              title="Allowed Categories"
-              icon={ShieldCheck}
-              iconColor="bg-green-500"
-              count={brief.allowedRules.length}
-              defaultOpen={false}
-            >
-              <div className="mt-4 space-y-2">
-                {brief.allowedRules.map((r, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-50/50 border border-green-100"
-                  >
-                    <ShieldCheck className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                    <span className="text-sm text-slate-900">
-                      {r.category} on {r.platform}
-                    </span>
-                    {r.notes && (
-                      <span className="text-xs text-slate-400 ml-auto">
-                        {r.notes}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Section>
-          )}
-
-          {/* No rules found */}
-          {!hasProhibitions &&
-            !hasRestrictions &&
-            !hasGeoRegs &&
-            !hasWarnings &&
-            brief.allowedRules.length === 0 &&
-            !hasTechSpecs && (
-              <Card className="border-slate-200 shadow-sm">
-                <CardContent className="py-12 text-center">
-                  <ShieldCheck className="h-10 w-10 text-green-400 mx-auto mb-3" />
-                  <h3 className="font-semibold text-slate-900 mb-1">
-                    No specific rules found
+          {/* Policy Library link */}
+          <Card className="border-slate-200 shadow-sm bg-slate-50">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1A56DB]/10 shrink-0">
+                  <BookOpen className="h-4.5 w-4.5 text-[#1A56DB]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Learn More in the Policy Library
                   </h3>
-                  <p className="text-sm text-slate-500 max-w-md mx-auto">
-                    No platform rules, geographic regulations, or restrictions
-                    were found for this combination. Try selecting specific
-                    categories for more detailed results.
+                  <p className="text-xs text-slate-500 mt-1">
+                    Read detailed articles, watch training videos, and take
+                    quizzes on the regulations and platform policies referenced
+                    in this brief.
                   </p>
-                </CardContent>
-              </Card>
-            )}
+                  <Link href="/app/learn">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 gap-1.5"
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                      Browse Policy Library
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
