@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AUX Ad Compliance — Development Progress</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --border: #334155;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.15);
+      --green: #22c55e;
+      --green-glow: rgba(34, 197, 94, 0.15);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.15);
+      --purple: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.15);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.15);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.15);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      background: linear-gradient(180deg, rgba(59,130,246,0.08) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .hero-logo .logo-box {
+      background: white;
+      border-radius: 10px;
+      padding: 6px 10px;
+    }
+    .hero-logo .logo-box img {
+      height: 32px;
+      display: block;
+    }
+    .hero-logo span {
+      font-size: 14px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #e2e8f0, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 18px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── Stats Bar ── */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 24px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* ── Container ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Section Heading ── */
+    .section-heading {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 60px 0 32px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      letter-spacing: -0.5px;
+    }
+
+    /* ── Feature Grid ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .feature-card .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .card-icon.blue   { background: var(--accent-glow); color: var(--accent); }
+    .card-icon.green  { background: var(--green-glow);  color: var(--green); }
+    .card-icon.amber  { background: var(--amber-glow);  color: var(--amber); }
+    .card-icon.purple { background: var(--purple-glow); color: var(--purple); }
+    .card-icon.rose   { background: var(--rose-glow);   color: var(--rose); }
+    .card-icon.cyan   { background: var(--cyan-glow);   color: var(--cyan); }
+
+    /* ── Status Badge ── */
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-top: 12px;
+    }
+    .badge.live     { background: var(--green-glow); color: var(--green); }
+    .badge.active   { background: var(--accent-glow); color: var(--accent); }
+    .badge.planned  { background: var(--amber-glow); color: var(--amber); }
+
+    /* ── Timeline ── */
+    .timeline {
+      position: relative;
+      padding-left: 32px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-entry {
+      position: relative;
+      margin-bottom: 32px;
+    }
+    .timeline-entry::before {
+      content: '';
+      position: absolute;
+      left: -29px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+    }
+    .timeline-entry.milestone::before {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green-glow);
+    }
+    .timeline-date {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .timeline-entry.milestone .timeline-date {
+      color: var(--green);
+    }
+    .timeline-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .timeline-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .timeline-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      padding: 40px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .stats-bar { gap: 24px; }
+      .stat-value { font-size: 28px; }
+      .hero { padding: 48px 16px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-logo">
+      <div class="logo-box"><img src="/logo.png" alt="AUX" /></div>
+      <span>Ad Compliance</span>
+    </div>
+    <h1>Development Progress</h1>
+    <p>Building the most comprehensive advertising compliance platform — from idea to production in under a week.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value">4</div>
+      <div class="stat-label">Iterations</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">90+</div>
+      <div class="stat-label">Commits</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">143</div>
+      <div class="stat-label">Ad Categories</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">416</div>
+      <div class="stat-label">Compliance Rules</div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- ── Features ── -->
+    <h2 class="section-heading">Platform Capabilities</h2>
+
+    <div class="feature-grid">
+
+      <div class="feature-card">
+        <div class="card-icon blue">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/></svg>
+        </div>
+        <h3>Intelligent Compliance Checking</h3>
+        <p>Multi-layered analysis combining regulation databases with AI to evaluate ad content against country-specific laws and platform policies in real time.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon purple">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/><circle cx="12" cy="15" r="2"/></svg>
+        </div>
+        <h3>AI-Powered Ad Review</h3>
+        <p>Analyses both ad copy and creative imagery using advanced vision models, providing specific pass/fail verdicts on each compliance requirement.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon green">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3>Bulk CSV Processing</h3>
+        <p>Upload entire ad campaign spreadsheets for compliance screening. Supports Google Ads format auto-detection, duplicate elimination, and batch processing.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon amber">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </div>
+        <h3>AI Copy Rewriter</h3>
+        <p>When content is flagged, the platform suggests compliant alternative wording — keeping the advertiser's message intact while meeting regulatory requirements.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon cyan">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <h3>Compliance Knowledge Base</h3>
+        <p>A structured library of legislation, platform policies, and cross-references — all linked to compliance rules with a clear draft-to-live approval workflow.</p>
+        <span class="badge active">In Development</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon rose">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <h3>AI Rule Configuration</h3>
+        <p>Admins describe rules in plain language and AI translates them into structured compliance conditions — dramatically reducing setup time for new regulations.</p>
+        <span class="badge active">In Development</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon green">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </div>
+        <h3>Credit-Based Billing</h3>
+        <p>Flexible pay-as-you-go model with tiered credit packs, integrated payment processing, balance tracking, and admin tools for credit management.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon purple">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </div>
+        <h3>AI Training Panel</h3>
+        <p>Admins curate real-world compliance examples that are injected into AI analysis prompts, continuously improving accuracy based on domain expertise.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon cyan">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h3>Regulatory Update Detection</h3>
+        <p>AI-assisted monitoring that checks existing rules against current regulations, flagging what needs attention and suggesting specific updates.</p>
+        <span class="badge active">In Development</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon amber">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3>Organisation & User Management</h3>
+        <p>Full admin suite for managing organisations, users, invitations, and role-based access across the platform.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon blue">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+        </div>
+        <h3>Usage Analytics</h3>
+        <p>Comprehensive dashboard tracking platform usage, compliance check volumes, and operational metrics for administrators.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon rose">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Real-Time Streaming Results</h3>
+        <p>Compliance check results stream to the browser as they are evaluated, giving immediate feedback rather than waiting for the full analysis to complete.</p>
+        <span class="badge live">Live</span>
+      </div>
+
+    </div>
+
+    <!-- ── Timeline ── -->
+    <h2 class="section-heading">Build Timeline</h2>
+
+    <div class="timeline">
+
+      <div class="timeline-entry">
+        <div class="timeline-date">Day 1 — 2 March 2026</div>
+        <div class="timeline-title">Project Inception</div>
+        <div class="timeline-desc">Initial prototype built and immediately rewritten with improved architecture. Core compliance database schema designed, admin portal scaffolded, and the first version of the multi-layered compliance check engine created.</div>
+        <div class="timeline-tags">
+          <span class="tag">v1 prototype</span>
+          <span class="tag">v2 rewrite</span>
+          <span class="tag">31 commits</span>
+        </div>
+      </div>
+
+      <div class="timeline-entry">
+        <div class="timeline-date">Day 2 — 3 March 2026</div>
+        <div class="timeline-title">Production Foundation</div>
+        <div class="timeline-desc">Started the production-grade v3 build. Set up deployment infrastructure, refined the compliance engine into three distinct analysis layers, and began persisting check results to the database.</div>
+        <div class="timeline-tags">
+          <span class="tag">v3 started</span>
+          <span class="tag">Vercel deployment</span>
+          <span class="tag">3-layer engine</span>
+        </div>
+      </div>
+
+      <div class="timeline-entry">
+        <div class="timeline-date">Day 3 — 4 March 2026</div>
+        <div class="timeline-title">Structured Compliance Checklist & Streaming</div>
+        <div class="timeline-desc">Built the detailed compliance checklist interface with filtering, expandable result rows, and admin override capabilities. Added real-time streaming so results appear as they are evaluated.</div>
+        <div class="timeline-tags">
+          <span class="tag">checklist UI</span>
+          <span class="tag">SSE streaming</span>
+          <span class="tag">admin overrides</span>
+        </div>
+      </div>
+
+      <div class="timeline-entry milestone">
+        <div class="timeline-date">Day 4 — 5 March 2026</div>
+        <div class="timeline-title">AI Vision, Copy Rewriter & Billing</div>
+        <div class="timeline-desc">Major feature day. Added AI image analysis for ad creatives, built the copy rewriter tool for suggesting compliant alternatives, expanded to 143 ad categories, and integrated Stripe billing with a credit-based pricing model.</div>
+        <div class="timeline-tags">
+          <span class="tag">image analysis</span>
+          <span class="tag">copy rewriter</span>
+          <span class="tag">143 categories</span>
+          <span class="tag">Stripe billing</span>
+        </div>
+      </div>
+
+      <div class="timeline-entry milestone">
+        <div class="timeline-date">Day 5 — 6 March 2026</div>
+        <div class="timeline-title">AI Training, Bulk Upload & v3 Launch</div>
+        <div class="timeline-desc">Completed the AI training panel for admin-curated examples, built the full bulk CSV upload pipeline with duplicate detection and batch processing, and deployed v3 to production. Began v4 development for the knowledge base.</div>
+        <div class="timeline-tags">
+          <span class="tag">AI training</span>
+          <span class="tag">bulk upload</span>
+          <span class="tag">v3 production</span>
+          <span class="tag">v4 started</span>
+        </div>
+      </div>
+
+      <div class="timeline-entry">
+        <div class="timeline-date">Day 6 — 7 March 2026</div>
+        <div class="timeline-title">Compliance Knowledge Base</div>
+        <div class="timeline-desc">Building a structured knowledge base linking legislation, platform policies, and compliance rules. Added AI-powered tools for rule configuration, source document discovery, and regulatory update checking. Migrated 416 existing rules into the unified system.</div>
+        <div class="timeline-tags">
+          <span class="tag">knowledge base</span>
+          <span class="tag">AI rule editor</span>
+          <span class="tag">416 rules migrated</span>
+          <span class="tag">in progress</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Coverage ── -->
+    <h2 class="section-heading">Coverage at a Glance</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card" style="text-align:center;">
+        <div style="font-size:32px; font-weight:700; color:var(--accent);">143</div>
+        <p>Advertising categories covered — from regulated sectors like alcohol, gambling, and pharmaceuticals to everyday categories like food, fashion, and travel.</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <div style="font-size:32px; font-weight:700; color:var(--green);">416</div>
+        <p>Individual compliance rules spanning multiple countries, platforms, and regulatory frameworks — each with structured conditions and AI check instructions.</p>
+      </div>
+      <div class="feature-card" style="text-align:center;">
+        <div style="font-size:32px; font-weight:700; color:var(--purple);">3</div>
+        <p>Major ad platforms supported — with rules tailored to each platform's specific policies on top of country-level legislation.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    AUX Ad Compliance &mdash; Built with care, one commit at a time.
+  </div>
+
+</body>
+</html>
