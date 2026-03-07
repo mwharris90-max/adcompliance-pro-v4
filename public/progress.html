@@ -249,6 +249,38 @@
       border: 1px solid var(--border);
       color: var(--text-muted);
     }
+    .timeline-items {
+      margin-top: 10px;
+      padding-left: 16px;
+    }
+    .timeline-items li {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      list-style: none;
+      position: relative;
+      padding-left: 12px;
+    }
+    .timeline-items li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-session {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
 
     /* ── Footer ── */
     .footer {
@@ -296,6 +328,10 @@
     <div class="stat">
       <div class="stat-value">416</div>
       <div class="stat-label">Compliance Rules</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">42,780</div>
+      <div class="stat-label">Lines of Code</div>
     </div>
   </div>
 
@@ -421,10 +457,37 @@
 
     <div class="timeline">
 
+      <!-- Day 1 -->
       <div class="timeline-entry">
         <div class="timeline-date">Day 1 — 2 March 2026</div>
         <div class="timeline-title">Project Inception</div>
-        <div class="timeline-desc">Initial prototype built and immediately rewritten with improved architecture. Core compliance database schema designed, admin portal scaffolded, and the first version of the multi-layered compliance check engine created.</div>
+        <div class="timeline-desc">Two full iterations in a single day — from first prototype to a clean, production-ready architecture.</div>
+        <div class="timeline-session">Session 1 — v1 Prototype</div>
+        <ul class="timeline-items">
+          <li>Initialised the project with a full-stack framework, database ORM, and UI component library</li>
+          <li>Designed the core database schema: users, platforms, categories, and countries</li>
+          <li>Built initial seed data with major advertising platforms</li>
+          <li>Created the admin portal layout with sidebar navigation</li>
+          <li>Built admin management pages for categories, countries, and platforms</li>
+          <li>Added platform-specific advertising rules and geographic regulation rules</li>
+          <li>Implemented the first compliance check flow: select category, platform, and country</li>
+          <li>Built Layer 1 (technical specs) and Layer 2 (database rule lookup) compliance checks</li>
+          <li>Archived v1 and decided to start fresh with cleaner architecture</li>
+        </ul>
+        <div class="timeline-session">Session 2 — v2 Rewrite</div>
+        <ul class="timeline-items">
+          <li>Complete rewrite with improved database relations and field naming</li>
+          <li>Enhanced seed data with more comprehensive category coverage</li>
+          <li>Built a stepper-based compliance check interface (multi-step guided form)</li>
+          <li>Integrated cloud image hosting for ad creative uploads</li>
+          <li>Implemented initial AI-powered compliance checking</li>
+          <li>Added safety guard to gracefully skip AI when not configured</li>
+          <li>Built compliance results display with colour-coded status badges</li>
+          <li>Created the admin dashboard with platform statistics</li>
+          <li>Enhanced rule conditions with structured data fields</li>
+          <li>Built user management page</li>
+          <li>Completed and archived v2 — ready to build the production version</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">v1 prototype</span>
           <span class="tag">v2 rewrite</span>
@@ -432,59 +495,182 @@
         </div>
       </div>
 
+      <!-- Day 2 -->
       <div class="timeline-entry">
         <div class="timeline-date">Day 2 — 3 March 2026</div>
         <div class="timeline-title">Production Foundation</div>
-        <div class="timeline-desc">Started the production-grade v3 build. Set up deployment infrastructure, refined the compliance engine into three distinct analysis layers, and began persisting check results to the database.</div>
+        <div class="timeline-desc">Started the production-grade build with cloud deployment and a refined compliance engine.</div>
+        <div class="timeline-session">Session 1 — Infrastructure</div>
+        <ul class="timeline-items">
+          <li>Created the production repository with refined schema</li>
+          <li>Set up cloud deployment pipeline with automatic builds on push</li>
+          <li>Configured environment variables for production</li>
+          <li>Added a compliance check history model for persisting results</li>
+          <li>Built results persistence so all check outcomes are saved to the database</li>
+        </ul>
+        <div class="timeline-session">Session 2 — Compliance Engine Architecture</div>
+        <ul class="timeline-items">
+          <li>Designed and implemented the 3-layer compliance engine</li>
+          <li>Layer 1: technical specification checks (ad format, dimensions, etc.)</li>
+          <li>Layer 2: deterministic database rule matching (instant pass/fail)</li>
+          <li>Layer 3: AI-powered analysis for nuanced rule interpretation</li>
+          <li>Added intelligent fallback — shows advisory warnings when AI is unavailable</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">v3 started</span>
-          <span class="tag">Vercel deployment</span>
+          <span class="tag">cloud deployment</span>
           <span class="tag">3-layer engine</span>
         </div>
       </div>
 
+      <!-- Day 3 -->
       <div class="timeline-entry">
         <div class="timeline-date">Day 3 — 4 March 2026</div>
-        <div class="timeline-title">Structured Compliance Checklist & Streaming</div>
-        <div class="timeline-desc">Built the detailed compliance checklist interface with filtering, expandable result rows, and admin override capabilities. Added real-time streaming so results appear as they are evaluated.</div>
+        <div class="timeline-title">Compliance Checklist & Real-Time Streaming</div>
+        <div class="timeline-desc">Built the interactive compliance results interface and added live-streaming results.</div>
+        <div class="timeline-session">Session 1 — Structured Checklist</div>
+        <ul class="timeline-items">
+          <li>Built the compliance checklist component with filter tabs by status</li>
+          <li>Added collapsible layer group sections for organised viewing</li>
+          <li>Created expandable detail rows showing per-requirement verdicts</li>
+          <li>Built an override modal so admins can manually adjust any check result</li>
+          <li>Added API endpoint for persisting admin overrides</li>
+          <li>Implemented mandatory illegal content screening as a separate analysis pass</li>
+        </ul>
+        <div class="timeline-session">Session 2 — Streaming</div>
+        <ul class="timeline-items">
+          <li>Implemented server-sent events for real-time result streaming</li>
+          <li>Progress updates appear instantly as each rule is evaluated</li>
+          <li>Built the client-side streaming consumer with progressive UI updates</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">checklist UI</span>
           <span class="tag">SSE streaming</span>
           <span class="tag">admin overrides</span>
+          <span class="tag">content screening</span>
         </div>
       </div>
 
+      <!-- Day 4 -->
       <div class="timeline-entry milestone">
         <div class="timeline-date">Day 4 — 5 March 2026</div>
         <div class="timeline-title">AI Vision, Copy Rewriter & Billing</div>
-        <div class="timeline-desc">Major feature day. Added AI image analysis for ad creatives, built the copy rewriter tool for suggesting compliant alternatives, expanded to 143 ad categories, and integrated Stripe billing with a credit-based pricing model.</div>
+        <div class="timeline-desc">The biggest feature day — four major capabilities added in three sessions.</div>
+        <div class="timeline-session">Session 1 — Image Analysis</div>
+        <ul class="timeline-items">
+          <li>Added AI image analysis for ad creatives using advanced vision models</li>
+          <li>Ad images sent alongside copy for holistic compliance review</li>
+          <li>Vision results integrated into the existing checklist display</li>
+        </ul>
+        <div class="timeline-session">Session 2 — Copy Rewriter & Categories</div>
+        <ul class="timeline-items">
+          <li>Built the AI copy rewriter — suggests compliant alternative wording for flagged content</li>
+          <li>Added 70 sensitive and regulated advertising categories (alcohol, gambling, pharmaceuticals, etc.)</li>
+          <li>Added 73 standard everyday categories (food, fashion, travel, beauty, tech, automotive, etc.)</li>
+          <li>All standard categories pre-configured with default rules across major platforms</li>
+        </ul>
+        <div class="timeline-session">Session 3 — Billing</div>
+        <ul class="timeline-items">
+          <li>Integrated payment processing with three tiered credit packs</li>
+          <li>Created a credit-based pricing system with balance tracking</li>
+          <li>Built webhook handling for payment event processing</li>
+          <li>Added balance enforcement — checks both monthly limits and credit balance</li>
+          <li>Built admin credit management tools (grant, refund, adjust)</li>
+          <li>Built the user-facing billing page with purchase flow, balance display, and transaction history</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">image analysis</span>
           <span class="tag">copy rewriter</span>
           <span class="tag">143 categories</span>
-          <span class="tag">Stripe billing</span>
+          <span class="tag">payment integration</span>
+          <span class="tag">credit system</span>
         </div>
       </div>
 
+      <!-- Day 5 -->
       <div class="timeline-entry milestone">
         <div class="timeline-date">Day 5 — 6 March 2026</div>
-        <div class="timeline-title">AI Training, Bulk Upload & v3 Launch</div>
-        <div class="timeline-desc">Completed the AI training panel for admin-curated examples, built the full bulk CSV upload pipeline with duplicate detection and batch processing, and deployed v3 to production. Began v4 development for the knowledge base.</div>
+        <div class="timeline-title">AI Training, Bulk Upload & Production Launch</div>
+        <div class="timeline-desc">Completed the last major features, launched to production, and started the next version.</div>
+        <div class="timeline-session">Session 1 — AI Training Panel</div>
+        <ul class="timeline-items">
+          <li>Created a database model for compliance training examples with versioning</li>
+          <li>Built full API for creating, editing, archiving, and deleting training examples</li>
+          <li>Editing content fields automatically archives the old version and creates a new one</li>
+          <li>Added a prompt preview feature so admins can see how examples appear in AI prompts</li>
+          <li>Built the admin UI: table view, create dialog, edit sheet with version tracking, delete confirmation</li>
+          <li>Training examples are injected into AI compliance check prompts (up to 8 per check)</li>
+        </ul>
+        <div class="timeline-session">Session 2 — Bulk CSV Upload</div>
+        <ul class="timeline-items">
+          <li>Built a CSV parser with automatic column format detection (supports Google Ads exports)</li>
+          <li>Added content deduplication using cryptographic hashing</li>
+          <li>Created database models for bulk check jobs and individual row results</li>
+          <li>Built multiple processing modes: instant (real-time) and batch (queued)</li>
+          <li>Added a standalone AI rewrite endpoint for per-field fix suggestions</li>
+          <li>Created a scheduled job for daily batch processing</li>
+          <li>Built drag-and-drop upload zone, preview dialog, and results table components</li>
+          <li>Added inline editing with AI-suggested fixes for each flagged row</li>
+          <li>Implemented delta detection — compares against previous uploads of the same file</li>
+          <li>CSV re-export preserves original column order and unmapped columns</li>
+          <li>Built job list page and detailed job view with full results table</li>
+        </ul>
+        <div class="timeline-session">Session 3 — Launch & v4 Start</div>
+        <ul class="timeline-items">
+          <li>Deployed v3 to production — live and serving users</li>
+          <li>Created the v4 repository for the next phase of development</li>
+          <li>Decided v4 would focus on a compliance knowledge base and unified rule management</li>
+        </ul>
         <div class="timeline-tags">
-          <span class="tag">AI training</span>
-          <span class="tag">bulk upload</span>
-          <span class="tag">v3 production</span>
+          <span class="tag">AI training panel</span>
+          <span class="tag">bulk CSV upload</span>
+          <span class="tag">batch processing</span>
+          <span class="tag">v3 production launch</span>
           <span class="tag">v4 started</span>
         </div>
       </div>
 
+      <!-- Day 6 -->
       <div class="timeline-entry">
         <div class="timeline-date">Day 6 — 7 March 2026</div>
         <div class="timeline-title">Compliance Knowledge Base</div>
-        <div class="timeline-desc">Building a structured knowledge base linking legislation, platform policies, and compliance rules. Added AI-powered tools for rule configuration, source document discovery, and regulatory update checking. Migrated 416 existing rules into the unified system.</div>
+        <div class="timeline-desc">Building a unified system linking legislation, platform policies, and compliance rules with AI-powered administration tools.</div>
+        <div class="timeline-session">Session 1 — Schema & APIs</div>
+        <ul class="timeline-items">
+          <li>Added database models for legislation, platform policies, and supporting resources</li>
+          <li>Created cross-reference tables linking legislation to platform policies</li>
+          <li>Extended the compliance rule model with source types, maturity levels, and sync tracking</li>
+          <li>Built full APIs for legislation management with search, filtering, and chat history</li>
+          <li>Built full APIs for platform policy management with platform and maturity filters</li>
+          <li>Built compliance rule APIs with category, status, source, platform, and country filters</li>
+          <li>Added an AI chat endpoint for legislation pages — suggests rules from regulation text</li>
+        </ul>
+        <div class="timeline-session">Session 2 — Admin UI</div>
+        <ul class="timeline-items">
+          <li>Built the legislation admin page: searchable table, create form, detail panel with tabs</li>
+          <li>Added AI chat tab for legislation — AI reads the regulation and suggests structured rules</li>
+          <li>Suggested rules can be accepted directly into the compliance system</li>
+          <li>Built the platform policies admin page: filterable table, create form, detail panel</li>
+          <li>Retired the old platform rules and geographic rules pages (replaced with redirects)</li>
+          <li>Updated admin navigation with indented sub-items for the knowledge base section</li>
+        </ul>
+        <div class="timeline-session">Session 3 — Unified Portal & AI Tools</div>
+        <ul class="timeline-items">
+          <li>Rebuilt the compliance rules page as a unified portal with category browser and rules view</li>
+          <li>Added a comprehensive filter bar: status, source type, maturity, platform, and country</li>
+          <li>Rules grouped into visual sections by their source (legislation vs platform policy)</li>
+          <li>Built the AI Rule Editor — describe rules in plain language, AI generates structured conditions</li>
+          <li>Built the AI Source Finder — identifies relevant legislation and policies for any rule</li>
+          <li>Built the AI Update Checker — assesses whether existing rules need updating</li>
+          <li>AI-suggested changes are saved in draft status until an admin promotes them to live</li>
+          <li>Created a migration script to bring 416 existing rules into the unified system</li>
+          <li>Added a public development progress page</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">knowledge base</span>
           <span class="tag">AI rule editor</span>
+          <span class="tag">AI source finder</span>
+          <span class="tag">AI update checker</span>
           <span class="tag">416 rules migrated</span>
           <span class="tag">in progress</span>
         </div>
