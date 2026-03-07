@@ -18,6 +18,7 @@ const patchSchema = z.object({
   legislationId: z.string().optional().nullable(),
   platformPolicyId: z.string().optional().nullable(),
   sourceType: z.enum(["LEGISLATION", "PLATFORM_POLICY", "PLATFORM_INDEPENDENT"]).optional(),
+  parentRuleId: z.string().optional().nullable(),
 });
 
 export async function PATCH(

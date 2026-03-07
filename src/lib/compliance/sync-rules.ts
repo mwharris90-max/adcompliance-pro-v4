@@ -131,6 +131,54 @@ export async function syncRuleToRuntime(complianceRuleId: string) {
       }
     }
   }
-  // Rules with neither platformId nor countryId are stored only in ComplianceRule
-  // (broad rules that apply everywhere — the compliance engine will pick these up in a future phase)
+  else if (!rule.platformId && !rule.countryId) {
+    // General rule (no platform, no country) — sync to PlatformRule for each active platform
+    const platforms = await db.platform.findMany({ where: { active: true } });
+
+    for (const platform of platforms) {
+      const platformData = {
+        platformId: platform.id,
+        categoryId: rule.categoryId,
+        status: rule.status,
+        notes: rule.description ?? rule.title,
+        conditions: rule.conditions === null ? Prisma.JsonNull : (rule.conditions as Prisma.InputJsonValue),
+        referenceUrl: null as string | null,
+        lastVerifiedAt: rule.lastVerifiedAt,
+      };
+
+      if (rule.legislationId) {
+        const leg = await db.legislation.findUnique({
+          where: { id: rule.legislationId },
+          select: { sourceUrl: true },
+        });
+        if (leg?.sourceUrl) platformData.referenceUrl = leg.sourceUrl;
+      }
+
+      const existing = await db.platformRule.findUnique({
+        where: {
+          platformId_categoryId: {
+            platformId: platform.id,
+            categoryId: rule.categoryId,
+          },
+        },
+      });
+
+      if (existing) {
+        // Only update if no platform-specific ComplianceRule overrides this
+        const override = await db.complianceRule.findFirst({
+          where: {
+            categoryId: rule.categoryId,
+            platformId: platform.id,
+            active: true,
+            id: { not: rule.id },
+          },
+        });
+        if (!override) {
+          await db.platformRule.update({ where: { id: existing.id }, data: platformData });
+        }
+      } else {
+        await db.platformRule.create({ data: platformData });
+      }
+    }
+  }
 }

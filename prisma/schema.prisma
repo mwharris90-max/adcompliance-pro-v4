@@ -967,6 +967,9 @@ model ComplianceRule {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
+  // Hierarchy — general rules (no platform) can be parents of platform-specific rules
+  parentRuleId     String?
+
   // Sync tracking — which runtime rule was created from this
   syncedPlatformRuleId String?
   syncedGeoRuleId      String?
@@ -977,12 +980,15 @@ model ComplianceRule {
   legislation      Legislation?    @relation(fields: [legislationId], references: [id])
   platformPolicy   PlatformPolicy? @relation(fields: [platformPolicyId], references: [id])
   verifiedBy       User?           @relation("RuleVerifier", fields: [lastVerifiedById], references: [id])
+  parentRule       ComplianceRule?  @relation("RuleHierarchy", fields: [parentRuleId], references: [id])
+  childRules       ComplianceRule[] @relation("RuleHierarchy")
   resourceLinks    ResourceLink[]
 
   @@index([categoryId])
   @@index([legislationId])
   @@index([platformPolicyId])
   @@index([sourceType])
+  @@index([parentRuleId])
   @@map("compliance_rules")
 }
 

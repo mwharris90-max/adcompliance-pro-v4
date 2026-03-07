@@ -21,6 +21,7 @@ const createSchema = z.object({
   conditions: z.record(z.string(), z.unknown()).optional().nullable(),
   aiCheckInstructions: z.string().optional().nullable(),
   maturity: z.enum(["ALPHA", "BETA", "LIVE"]).default("ALPHA"),
+  parentRuleId: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
   const categoryId = req.nextUrl.searchParams.get("categoryId");
   const maturity = req.nextUrl.searchParams.get("maturity");
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = { parentRuleId: null };
   if (legislationId) where.legislationId = legislationId;
   if (platformPolicyId) where.platformPolicyId = platformPolicyId;
   if (categoryId) where.categoryId = categoryId;
@@ -47,6 +48,16 @@ export async function GET(req: NextRequest) {
       country: { select: { id: true, name: true, code: true } },
       legislation: { select: { id: true, title: true, slug: true } },
       platformPolicy: { select: { id: true, title: true, slug: true } },
+      childRules: {
+        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          platform: { select: { id: true, name: true } },
+          country: { select: { id: true, name: true, code: true } },
+          legislation: { select: { id: true, title: true, slug: true } },
+          platformPolicy: { select: { id: true, title: true, slug: true } },
+        },
+      },
     },
   });
 
@@ -115,6 +126,7 @@ export async function POST(req: NextRequest) {
       conditions: data.conditions ? (data.conditions as Prisma.InputJsonValue) : Prisma.JsonNull,
       aiCheckInstructions: data.aiCheckInstructions ?? null,
       maturity: data.maturity,
+      parentRuleId: data.parentRuleId ?? null,
       lastVerifiedById: session.user.id,
       lastVerifiedAt: new Date(),
     },

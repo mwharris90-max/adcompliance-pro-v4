@@ -80,11 +80,13 @@ interface ComplianceRule {
   conditions: Record<string, unknown> | null;
   aiCheckInstructions: string | null;
   lastVerifiedAt: string | null;
+  parentRuleId: string | null;
   category: { id: string; name: string; slug: string };
   platform: { id: string; name: string } | null;
   country: { id: string; name: string; code: string } | null;
   legislation: { id: string; title: string; slug: string } | null;
   platformPolicy: { id: string; title: string; slug: string } | null;
+  childRules?: ComplianceRule[];
 }
 
 interface SuggestedSource {
@@ -221,9 +223,9 @@ export default function CompliancePage() {
   const uniquePlatforms = [...new Set(rules.filter((r) => r.platform).map((r) => r.platform!.name))].sort();
   const uniqueCountries = [...new Set(rules.filter((r) => r.country).map((r) => r.country!.code))].sort();
 
-  const legislationRules = filteredRules.filter((r) => r.sourceType === "LEGISLATION");
-  const platformRules = filteredRules.filter((r) => r.sourceType === "PLATFORM_POLICY");
-  const independentRules = filteredRules.filter((r) => r.sourceType === "PLATFORM_INDEPENDENT");
+  // Group into general (no platform) and platform-specific rules
+  const generalRules = filteredRules.filter((r) => !r.platform && !r.parentRuleId);
+  const standaloneChannelRules = filteredRules.filter((r) => r.platform && !r.parentRuleId && !generalRules.some((g) => g.childRules?.some((c) => c.id === r.id)));
 
   return (
     <div>
@@ -413,27 +415,36 @@ export default function CompliancePage() {
                 </div>
               ) : (
                 <>
-                  {legislationRules.length > 0 && (
-                    <RuleSection
-                      title="Legislation Rules"
-                      icon={<Scale className="h-4 w-4 text-indigo-500" />}
-                      rules={legislationRules}
-                      onSelect={setDetailRule}
-                    />
+                  {generalRules.length > 0 && (
+                    <div className="space-y-4">
+                      {generalRules.map((rule) => (
+                        <div key={rule.id}>
+                          <RuleSection
+                            title={`General — ${rule.country?.name ?? "All Jurisdictions"}`}
+                            icon={<Scale className="h-4 w-4 text-indigo-500" />}
+                            rules={[rule]}
+                            onSelect={setDetailRule}
+                          />
+                          {rule.childRules && rule.childRules.length > 0 && (
+                            <div className="ml-6 mt-1 border-l-2 border-indigo-100 pl-3">
+                              <RuleSection
+                                title="Channel-Specific Overrides"
+                                icon={<FileText className="h-3.5 w-3.5 text-teal-500" />}
+                                rules={rule.childRules}
+                                onSelect={setDetailRule}
+                                compact
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {platformRules.length > 0 && (
+                  {standaloneChannelRules.length > 0 && (
                     <RuleSection
-                      title="Platform Policy Rules"
+                      title="Channel-Specific Rules"
                       icon={<FileText className="h-4 w-4 text-teal-500" />}
-                      rules={platformRules}
-                      onSelect={setDetailRule}
-                    />
-                  )}
-                  {independentRules.length > 0 && (
-                    <RuleSection
-                      title="Platform Independent Rules"
-                      icon={<FileText className="h-4 w-4 text-slate-400" />}
-                      rules={independentRules}
+                      rules={standaloneChannelRules}
                       onSelect={setDetailRule}
                     />
                   )}
@@ -471,55 +482,68 @@ function RuleSection({
   icon,
   rules,
   onSelect,
+  compact,
 }: {
   title: string;
   icon: React.ReactNode;
   rules: ComplianceRule[];
   onSelect: (r: ComplianceRule) => void;
+  compact?: boolean;
 }) {
   return (
     <div>
-      <div className="flex items-center gap-2 mb-2">
+      <div className={`flex items-center gap-2 ${compact ? "mb-1" : "mb-2"}`}>
         {icon}
-        <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+        <h3 className={`font-semibold text-slate-700 ${compact ? "text-xs" : "text-sm"}`}>{title}</h3>
         <span className="text-xs text-slate-400">({rules.length})</span>
       </div>
-      <div className="border rounded-lg bg-white">
+      <div className={`border rounded-lg bg-white ${compact ? "border-slate-200" : ""}`}>
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Rule</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Scope</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Maturity</TableHead>
-              <TableHead>Verified</TableHead>
-            </TableRow>
-          </TableHeader>
+          {!compact && (
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rule</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Scope</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Maturity</TableHead>
+                <TableHead>Verified</TableHead>
+              </TableRow>
+            </TableHeader>
+          )}
           <TableBody>
             {rules.map((rule) => (
               <TableRow key={rule.id} className="cursor-pointer hover:bg-slate-50" onClick={() => onSelect(rule)}>
                 <TableCell className="max-w-[200px]">
-                  <p className="text-sm font-medium truncate">{rule.title}</p>
+                  <p className={`font-medium truncate ${compact ? "text-xs" : "text-sm"}`}>
+                    {compact && rule.platform && <span className="text-teal-600 mr-1">{rule.platform.name}:</span>}
+                    {rule.title}
+                  </p>
                 </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1.5">
-                    {sourceIcon(rule.sourceType)}
-                    <span className="text-xs text-slate-500 truncate max-w-[120px]">{sourceLabel(rule)}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs text-slate-500">
-                  <div className="flex gap-1 flex-wrap">
-                    {rule.platform && <span className="bg-slate-100 px-1.5 py-0.5 rounded">{rule.platform.name}</span>}
-                    {rule.country && <span className="bg-slate-100 px-1.5 py-0.5 rounded">{rule.country.code}</span>}
-                    {!rule.platform && !rule.country && <span className="text-slate-400">All</span>}
-                  </div>
-                </TableCell>
+                {!compact && (
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      {sourceIcon(rule.sourceType)}
+                      <span className="text-xs text-slate-500 truncate max-w-[120px]">{sourceLabel(rule)}</span>
+                    </div>
+                  </TableCell>
+                )}
+                {!compact && (
+                  <TableCell className="text-xs text-slate-500">
+                    <div className="flex gap-1 flex-wrap">
+                      {rule.platform && <span className="bg-slate-100 px-1.5 py-0.5 rounded">{rule.platform.name}</span>}
+                      {rule.country && <span className="bg-slate-100 px-1.5 py-0.5 rounded">{rule.country.code}</span>}
+                      {!rule.platform && !rule.country && <span className="text-slate-400">All</span>}
+                    </div>
+                  </TableCell>
+                )}
                 <TableCell><Badge variant="outline" className={statusColor(rule.status)}>{rule.status}</Badge></TableCell>
                 <TableCell><Badge variant="outline" className={maturityColor(rule.maturity)}>{rule.maturity}</Badge></TableCell>
-                <TableCell className="text-xs text-slate-500">
-                  {rule.lastVerifiedAt ? new Date(rule.lastVerifiedAt).toLocaleDateString() : "Never"}
-                </TableCell>
+                {!compact && (
+                  <TableCell className="text-xs text-slate-500">
+                    {rule.lastVerifiedAt ? new Date(rule.lastVerifiedAt).toLocaleDateString() : "Never"}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -763,6 +787,37 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
             <CheckCircle className="h-3.5 w-3.5 mr-1" />Verify
           </Button>
         </div>
+      </div>
+
+      {/* Hierarchy */}
+      <div className="bg-slate-50 rounded-lg p-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Link2 className="h-3.5 w-3.5 text-slate-400" />
+          <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            Rule Hierarchy
+          </span>
+        </div>
+        {!rule.platform && !rule.parentRuleId && (
+          <p className="text-xs text-indigo-600 font-medium">General Rule — applies to all channels. Channel-specific overrides inherit from this rule.</p>
+        )}
+        {rule.parentRuleId && (
+          <p className="text-xs text-teal-600">Channel override — inherits base conditions from the parent general rule.</p>
+        )}
+        {rule.platform && !rule.parentRuleId && (
+          <p className="text-xs text-slate-500">Standalone channel rule — not linked to a general rule. Consider linking to a parent general rule.</p>
+        )}
+        {rule.childRules && rule.childRules.length > 0 && (
+          <div className="mt-2 space-y-1">
+            <p className="text-xs text-slate-500 font-medium">Channel overrides ({rule.childRules.length}):</p>
+            {rule.childRules.map((c) => (
+              <div key={c.id} className="flex items-center gap-2 text-xs text-slate-600 bg-white rounded px-2 py-1">
+                <span className="font-medium text-teal-600">{c.platform?.name ?? "Unknown"}</span>
+                <Badge variant="outline" className={`text-[10px] ${statusColor(c.status)}`}>{c.status}</Badge>
+                <span className="truncate text-slate-400">{c.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Source Document */}

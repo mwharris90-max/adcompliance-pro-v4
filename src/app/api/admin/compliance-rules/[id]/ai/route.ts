@@ -172,8 +172,8 @@ For each source found:
 - List specific sections or clauses where possible`;
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 4096,
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 2048,
     system: systemPrompt,
     messages: [
       {
@@ -185,7 +185,7 @@ For each source found:
       {
         type: "web_search_20250305",
         name: "web_search",
-        max_uses: 5,
+        max_uses: 3,
       } as unknown as Anthropic.Messages.Tool,
       {
         name: "suggest_sources",
