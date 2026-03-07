@@ -15,6 +15,9 @@ const patchSchema = z.object({
   active: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   markVerified: z.boolean().optional(),
+  legislationId: z.string().optional().nullable(),
+  platformPolicyId: z.string().optional().nullable(),
+  sourceType: z.enum(["LEGISLATION", "PLATFORM_POLICY", "PLATFORM_INDEPENDENT"]).optional(),
 });
 
 export async function PATCH(

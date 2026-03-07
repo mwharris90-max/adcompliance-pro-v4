@@ -41,6 +41,11 @@ import {
   MessageSquare,
   AlertTriangle,
   Info,
+  Plus,
+  Link2,
+  Unlink,
+  Wand2,
+  X,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -530,6 +535,19 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Source management
+  const [showManualSource, setShowManualSource] = useState(false);
+  const [manualSourceType, setManualSourceType] = useState<string>("LEGISLATION");
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualUrl, setManualUrl] = useState("");
+  const [manualSummary, setManualSummary] = useState("");
+  const [linkingSaving, setLinkingSaving] = useState(false);
+
+  // Generate from source
+  const [generatingFromSource, setGeneratingFromSource] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<Record<string, unknown> | null>(null);
+  const [generateResponse, setGenerateResponse] = useState<string | null>(null);
+
   // AI states
   const [chatMessage, setChatMessage] = useState("");
   const [chatSending, setChatSending] = useState(false);
@@ -605,6 +623,79 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
     setFindingSources(false);
   };
 
+  const acceptSource = async (src: SuggestedSource) => {
+    setLinkingSaving(true);
+    const res = await fetch(`/api/admin/compliance-rules/${rule.id}/link-source`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create_and_link",
+        sourceType: src.type === "PLATFORM_POLICY" ? "PLATFORM_POLICY" : "LEGISLATION",
+        title: src.title,
+        sourceUrl: src.sourceUrl,
+        summary: src.summary,
+        jurisdiction: src.jurisdiction,
+      }),
+    });
+    const json = await res.json();
+    setLinkingSaving(false);
+    if (json.success) {
+      setSources(null);
+      onUpdate();
+    }
+  };
+
+  const addManualSource = async () => {
+    if (!manualTitle.trim()) return;
+    setLinkingSaving(true);
+    const res = await fetch(`/api/admin/compliance-rules/${rule.id}/link-source`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create_and_link",
+        sourceType: manualSourceType,
+        title: manualTitle.trim(),
+        sourceUrl: manualUrl.trim() || undefined,
+        summary: manualSummary.trim() || undefined,
+      }),
+    });
+    const json = await res.json();
+    setLinkingSaving(false);
+    if (json.success) {
+      setShowManualSource(false);
+      setManualTitle("");
+      setManualUrl("");
+      setManualSummary("");
+      onUpdate();
+    }
+  };
+
+  const unlinkSource = async () => {
+    setLinkingSaving(true);
+    await fetch(`/api/admin/compliance-rules/${rule.id}/link-source`, { method: "DELETE" });
+    setLinkingSaving(false);
+    onUpdate();
+  };
+
+  const generateFromSource = async () => {
+    setGeneratingFromSource(true);
+    setGeneratedContent(null);
+    setGenerateResponse(null);
+    const res = await fetch(`/api/admin/compliance-rules/${rule.id}/ai`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "generate_from_source" }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setGenerateResponse(json.response);
+      if (json.suggestedContent) setGeneratedContent(json.suggestedContent);
+    } else {
+      setGenerateResponse(json.error?.message ?? "Generation failed");
+    }
+    setGeneratingFromSource(false);
+  };
+
   const checkUpdates = async () => {
     setCheckingUpdates(true);
     setAssessment(null);
@@ -623,6 +714,8 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
     }
     setCheckingUpdates(false);
   };
+
+  const hasSource = !!(rule.legislation || rule.platformPolicy);
 
   return (
     <div className="space-y-5 mt-4">
@@ -657,41 +750,102 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
         </div>
       </div>
 
-      {/* Source */}
+      {/* Source Document */}
       <div className="bg-slate-50 rounded-lg p-3">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             {sourceIcon(rule.sourceType)}
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-              {rule.sourceType.replace(/_/g, " ")}
+              Source Document
             </span>
           </div>
-          {!rule.legislation && !rule.platformPolicy && (
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={findSources} disabled={findingSources}>
-              {findingSources ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <SearchCheck className="h-3 w-3 mr-1" />}
-              Find Sources
-            </Button>
-          )}
+          <div className="flex gap-1">
+            {hasSource && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-slate-400 hover:text-red-500" onClick={unlinkSource} disabled={linkingSaving}>
+                <Unlink className="h-3 w-3 mr-1" />Unlink
+              </Button>
+            )}
+            {!hasSource && (
+              <>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setShowManualSource(!showManualSource)}>
+                  <Plus className="h-3 w-3 mr-1" />Add Manually
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={findSources} disabled={findingSources}>
+                  {findingSources ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <SearchCheck className="h-3 w-3 mr-1" />}
+                  Find Sources
+                </Button>
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Linked source display */}
         {rule.legislation && (
-          <a href="/admin/legislation" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-            {rule.legislation.title}<ExternalLink className="h-3 w-3" />
-          </a>
+          <div className="flex items-center gap-2 mt-1">
+            <Scale className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+            <a href="/admin/legislation" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+              {rule.legislation.title}<ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         )}
         {rule.platformPolicy && (
-          <a href="/admin/platform-policies" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
-            {rule.platformPolicy.title}<ExternalLink className="h-3 w-3" />
-          </a>
+          <div className="flex items-center gap-2 mt-1">
+            <FileText className="h-3.5 w-3.5 text-teal-500 shrink-0" />
+            <a href="/admin/platform-policies" target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+              {rule.platformPolicy.title}<ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         )}
-        {!rule.legislation && !rule.platformPolicy && !sources && (
-          <p className="text-sm text-slate-500">No linked source document</p>
+        {!hasSource && !showManualSource && (
+          <p className="text-sm text-slate-500 mt-1">No linked source document</p>
+        )}
+
+        {/* Manual source form */}
+        {showManualSource && !hasSource && (
+          <div className="mt-3 border rounded-lg p-3 bg-white space-y-2">
+            <div className="flex gap-2">
+              <Select value={manualSourceType} onValueChange={setManualSourceType}>
+                <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LEGISLATION">Legislation</SelectItem>
+                  <SelectItem value="PLATFORM_POLICY">Platform Policy</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="ghost" size="sm" className="h-8" onClick={() => setShowManualSource(false)}>
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Source title (e.g. Advertising Standards Authority Code)"
+              value={manualTitle}
+              onChange={(e) => setManualTitle(e.target.value)}
+              className="h-8 text-sm"
+            />
+            <Input
+              placeholder="Source URL (optional)"
+              value={manualUrl}
+              onChange={(e) => setManualUrl(e.target.value)}
+              className="h-8 text-sm"
+            />
+            <Textarea
+              placeholder="Brief summary of how this source relates to the rule (optional)"
+              value={manualSummary}
+              onChange={(e) => setManualSummary(e.target.value)}
+              rows={2}
+              className="text-sm"
+            />
+            <Button size="sm" onClick={addManualSource} disabled={!manualTitle.trim() || linkingSaving}>
+              {linkingSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Link2 className="h-3 w-3 mr-1" />}
+              Create and Link
+            </Button>
+          </div>
         )}
       </div>
 
-      {/* Sources results */}
+      {/* AI suggested sources with Accept buttons */}
       {sources && sources.length > 0 && (
         <div className="border rounded-lg p-3 bg-indigo-50/50">
-          <p className="text-xs font-medium text-indigo-700 mb-2">Suggested Sources (draft -- review before linking)</p>
+          <p className="text-xs font-medium text-indigo-700 mb-2">Suggested Sources — click Accept to link</p>
           {sourcesResponse && <p className="text-xs text-slate-600 mb-2">{sourcesResponse}</p>}
           <div className="space-y-2">
             {sources.map((src, i) => (
@@ -713,15 +867,114 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
                       <p className="text-xs text-slate-500 mt-0.5">Key provisions: {src.keyProvisions.join(", ")}</p>
                     )}
                   </div>
-                  {src.sourceUrl && (
-                    <a href={src.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 shrink-0">
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  )}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    {src.sourceUrl && (
+                      <a href={src.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                    {!hasSource && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => acceptSource(src)}
+                        disabled={linkingSaving}
+                      >
+                        {linkingSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3 mr-1" />}
+                        Accept
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Generate from Source button */}
+      {hasSource && (
+        <div className="border rounded-lg p-3 bg-purple-50/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-purple-700">Generate Rule Content from Source</p>
+              <p className="text-xs text-purple-600/70 mt-0.5">
+                AI will read the linked source document and suggest conditions, description, and check instructions
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={generateFromSource}
+              disabled={generatingFromSource}
+            >
+              {generatingFromSource ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <Wand2 className="h-3.5 w-3.5 mr-1.5" />}
+              Generate
+            </Button>
+          </div>
+
+          {/* Generated content results */}
+          {generatedContent && (
+            <div className="mt-3 border rounded-lg p-3 bg-white space-y-2">
+              {generateResponse && <p className="text-xs text-slate-600 mb-2">{generateResponse}</p>}
+
+              {typeof generatedContent.status === "string" && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-500">Status:</span>
+                  <Badge variant="outline" className={statusColor(generatedContent.status)}>
+                    {generatedContent.status}
+                  </Badge>
+                </div>
+              )}
+
+              {typeof generatedContent.description === "string" && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-0.5">Description:</p>
+                  <p className="text-xs text-slate-700">{generatedContent.description}</p>
+                </div>
+              )}
+
+              {generatedContent.conditions != null && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-0.5">Conditions:</p>
+                  <pre className="text-[11px] bg-slate-50 rounded p-1.5 overflow-x-auto">
+                    {JSON.stringify(generatedContent.conditions, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {typeof generatedContent.aiCheckInstructions === "string" && (
+                <div>
+                  <p className="text-xs font-medium text-slate-500 mb-0.5">AI Check Instructions:</p>
+                  <p className="text-xs text-slate-700 bg-amber-50 rounded p-1.5">
+                    {generatedContent.aiCheckInstructions}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applySuggestedUpdate(generatedContent)}
+                  disabled={saving}
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />Accept All (Draft)
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400"
+                  onClick={() => { setGeneratedContent(null); setGenerateResponse(null); }}
+                >
+                  Dismiss
+                </Button>
+              </div>
+              <p className="text-[10px] text-slate-400">Changes save as ALPHA maturity until promoted to LIVE</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -770,7 +1023,7 @@ function RuleDetail({ rule, onUpdate }: { rule: ComplianceRule; onUpdate: () => 
             {checkingUpdates ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
             Check for Updates
           </Button>
-          {!rule.legislation && !rule.platformPolicy && (
+          {!hasSource && (
             <Button variant="outline" size="sm" onClick={findSources} disabled={findingSources} className="flex-1">
               {findingSources ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <SearchCheck className="h-3.5 w-3.5 mr-1.5" />}
               Find Sources

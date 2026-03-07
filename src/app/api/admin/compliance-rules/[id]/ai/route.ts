@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import Anthropic from "@anthropic-ai/sdk";
 
 const chatSchema = z.object({
-  action: z.enum(["chat", "find_sources", "check_updates"]),
+  action: z.enum(["chat", "find_sources", "check_updates", "generate_from_source"]),
   message: z.string().optional(),
 });
 
@@ -58,6 +58,8 @@ export async function POST(
     return handleChat(anthropic, rule, parsed.data.message ?? "");
   } else if (parsed.data.action === "find_sources") {
     return handleFindSources(anthropic, rule);
+  } else if (parsed.data.action === "generate_from_source") {
+    return handleGenerateFromSource(anthropic, rule);
   } else {
     return handleCheckUpdates(anthropic, rule);
   }
@@ -325,5 +327,144 @@ Use the assessment tool to provide a structured response. Be specific about what
     success: true,
     response: assistantText,
     assessment,
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleGenerateFromSource(anthropic: Anthropic, rule: any) {
+  const sourceTitle = rule.legislation?.title ?? rule.platformPolicy?.title ?? "Unknown";
+  const sourceSummary = rule.legislation?.summary ?? rule.platformPolicy?.summary ?? "";
+  const sourceUrl = rule.legislation?.sourceUrl ?? rule.platformPolicy?.sourceUrl ?? "";
+  const platformName = rule.platformPolicy?.platform?.name ?? rule.platform?.name ?? "All platforms";
+
+  if (!rule.legislation && !rule.platformPolicy) {
+    return NextResponse.json({
+      success: false,
+      error: { message: "No source document linked. Link a legislation or platform policy first." },
+    }, { status: 400 });
+  }
+
+  const systemPrompt = `You are an advertising compliance specialist. A compliance rule has been linked to a source document. Your job is to review the source and generate appropriate conditions, description, and AI check instructions.
+
+RULE:
+- Title: ${rule.title}
+- Category: ${rule.category.name}
+- Platform: ${platformName}
+- Country: ${rule.country?.name ?? "All countries"}
+- Current status: ${rule.status}
+- Current description: ${rule.description ?? "None"}
+- Current conditions: ${rule.conditions ? JSON.stringify(rule.conditions) : "None"}
+- Current AI check instructions: ${rule.aiCheckInstructions ?? "None"}
+
+SOURCE DOCUMENT:
+- Title: ${sourceTitle}
+- URL: ${sourceUrl}
+- Summary: ${sourceSummary}
+
+YOUR TASK:
+1. Use web search to find the full text of the source document: "${sourceTitle}"${sourceUrl ? ` at ${sourceUrl}` : ""}
+2. Based on the source document, determine what conditions and requirements apply to "${rule.category.name}" advertising
+3. Use the generate_rule_content tool to suggest:
+   - The appropriate status (ALLOWED, RESTRICTED, PROHIBITED)
+   - A clear plain-English description of what the rule means for advertisers
+   - Structured conditions (ageGate, disclaimer, timeRestrictions, contentRestrictions, targetingRestrictions, priorApproval)
+   - AI check instructions telling the compliance checker exactly what to look for
+
+Only include conditions that are actually required by the source document. Do not invent requirements.`;
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [
+      {
+        role: "user",
+        content: `Read the source document "${sourceTitle}" and generate the compliance rule conditions, description, and AI check instructions for ${rule.category.name} advertising.`,
+      },
+    ],
+    tools: [
+      {
+        type: "web_search_20250305",
+        name: "web_search",
+        max_uses: 3,
+      } as unknown as Anthropic.Messages.Tool,
+      {
+        name: "generate_rule_content",
+        description: "Generate rule content based on the source document.",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            status: {
+              type: "string",
+              enum: ["ALLOWED", "RESTRICTED", "PROHIBITED", "UNKNOWN"],
+              description: "The appropriate status based on the source",
+            },
+            description: {
+              type: "string",
+              description: "Plain-English description of what this rule means for advertisers",
+            },
+            conditions: {
+              type: "object",
+              description: "Structured conditions from the source document",
+              properties: {
+                ageGate: {
+                  type: "object",
+                  properties: {
+                    required: { type: "boolean" },
+                    minimumAge: { type: "number" },
+                  },
+                },
+                disclaimer: {
+                  type: "object",
+                  properties: {
+                    required: { type: "boolean" },
+                    text: { type: "string" },
+                  },
+                },
+                priorApproval: { type: "boolean" },
+                timeRestrictions: {
+                  type: "object",
+                  properties: {
+                    restricted: { type: "boolean" },
+                    startTime: { type: "string" },
+                    endTime: { type: "string" },
+                  },
+                },
+                contentRestrictions: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                targetingRestrictions: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
+            aiCheckInstructions: {
+              type: "string",
+              description: "Instructions for the AI compliance checker",
+            },
+          },
+          required: ["status", "description", "conditions", "aiCheckInstructions"],
+        },
+      },
+    ],
+  });
+
+  let assistantText = "";
+  let suggestedContent: Record<string, unknown> | null = null;
+
+  for (const block of response.content) {
+    if (block.type === "text") {
+      assistantText += block.text;
+    } else if (block.type === "tool_use" && block.name === "generate_rule_content") {
+      suggestedContent = block.input as Record<string, unknown>;
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    response: assistantText,
+    suggestedContent,
   });
 }
