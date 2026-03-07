@@ -136,35 +136,58 @@ Keep responses concise and practical.`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleFindSources(anthropic: Anthropic, rule: any) {
-  const systemPrompt = `You are an advertising compliance research specialist. Given an advertising compliance rule, identify the most relevant legislation, regulations, and platform policies that would govern this rule.
+  const categoryName = rule.category.name;
+  const platformName = rule.platform?.name ?? "All platforms";
+  const countryName = rule.country?.name ?? "All countries";
+
+  const systemPrompt = `You are an advertising compliance research specialist. You have access to web search to find real, current legislation and platform policies.
 
 RULE CONTEXT:
-- Category: ${rule.category.name}
-- Platform: ${rule.platform?.name ?? "All platforms"}
-- Country: ${rule.country?.name ?? "All countries"}
+- Category: ${categoryName}
+- Platform: ${platformName}
+- Country: ${countryName}
 - Status: ${rule.status}
 - Description: ${rule.description ?? rule.title}
 
-Respond using the suggest_sources tool with relevant legislation and platform policies.
-For each source:
-- Provide the official title
-- Specify the type (LEGISLATION or PLATFORM_POLICY)
-- Provide the jurisdiction or platform
-- Include the official source URL if known
-- Write a brief summary of how it relates to this rule
-- Rate relevance as HIGH, MEDIUM, or LOW
+YOUR TASK:
+1. Use web search to find the actual legislation, regulations, and platform advertising policies that govern "${categoryName}" advertising${countryName !== "All countries" ? ` in ${countryName}` : ""}${platformName !== "All platforms" ? ` on ${platformName}` : ""}.
+2. Search for official government legislation pages, regulatory body guidelines, and platform policy documentation.
+3. After searching, use the suggest_sources tool to provide your findings with real URLs from the search results.
 
-Focus on real, current legislation and policies. Be specific about sections or clauses where possible.`;
+SEARCH STRATEGY:
+- Search for "${categoryName} advertising regulations${countryName !== "All countries" ? ` ${countryName}` : ""}"
+- Search for "${categoryName} advertising law${countryName !== "All countries" ? ` ${countryName}` : ""}"
+${platformName !== "All platforms" ? `- Search for "${platformName} ${categoryName} advertising policy"` : ""}
+- Look for official .gov, .org, or platform policy URLs
+- Focus on current, enforceable regulations
+
+For each source found:
+- Use the EXACT title from the official document
+- Include the REAL URL from search results (not made up)
+- Specify whether it is LEGISLATION or PLATFORM_POLICY
+- Summarise how it specifically relates to ${categoryName} advertising
+- Rate relevance as HIGH, MEDIUM, or LOW
+- List specific sections or clauses where possible`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 3000,
+    max_tokens: 4096,
     system: systemPrompt,
-    messages: [{ role: "user", content: "Find relevant legislation and platform policies for this compliance rule." }],
+    messages: [
+      {
+        role: "user",
+        content: `Find the specific legislation and platform policies that govern ${categoryName} advertising${countryName !== "All countries" ? ` in ${countryName}` : ""}${platformName !== "All platforms" ? ` on ${platformName}` : ""}. Search the web for official sources.`,
+      },
+    ],
     tools: [
       {
+        type: "web_search_20250305",
+        name: "web_search",
+        max_uses: 5,
+      } as unknown as Anthropic.Messages.Tool,
+      {
         name: "suggest_sources",
-        description: "Suggest relevant legislation and platform policies for this rule.",
+        description: "Provide the sources found from web search results.",
         input_schema: {
           type: "object" as const,
           properties: {
@@ -176,7 +199,7 @@ Focus on real, current legislation and policies. Be specific about sections or c
                   title: { type: "string", description: "Official title of the legislation or policy" },
                   type: { type: "string", enum: ["LEGISLATION", "PLATFORM_POLICY"] },
                   jurisdiction: { type: "string", description: "Country/region or platform name" },
-                  sourceUrl: { type: "string", description: "URL to the official source" },
+                  sourceUrl: { type: "string", description: "URL to the official source — must be a real URL from search results" },
                   summary: { type: "string", description: "How this source relates to the rule" },
                   relevance: { type: "string", enum: ["HIGH", "MEDIUM", "LOW"] },
                   keyProvisions: { type: "array", items: { type: "string" }, description: "Specific sections or clauses" },
@@ -204,7 +227,7 @@ Focus on real, current legislation and policies. Be specific about sections or c
   }
 
   if (!assistantText && sources.length > 0) {
-    assistantText = `Found ${sources.length} relevant source${sources.length === 1 ? "" : "s"} for this rule.`;
+    assistantText = `Found ${sources.length} relevant source${sources.length === 1 ? "" : "s"} for this rule by searching trusted regulatory and platform policy resources.`;
   }
 
   return NextResponse.json({
