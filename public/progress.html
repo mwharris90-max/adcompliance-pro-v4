@@ -318,7 +318,7 @@
       <div class="stat-label">Iterations</div>
     </div>
     <div class="stat">
-      <div class="stat-value">90+</div>
+      <div class="stat-value">100+</div>
       <div class="stat-label">Commits</div>
     </div>
     <div class="stat">
@@ -330,7 +330,7 @@
       <div class="stat-label">Compliance Rules</div>
     </div>
     <div class="stat">
-      <div class="stat-value">42,780</div>
+      <div class="stat-value">45,300</div>
       <div class="stat-label">Lines of Code</div>
     </div>
   </div>
@@ -412,6 +412,24 @@
         <h3>AI Training Panel</h3>
         <p>Admins curate real-world compliance examples that are injected into AI analysis prompts, continuously improving accuracy based on domain expertise.</p>
         <span class="badge live">Live</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon green">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/></svg>
+        </div>
+        <h3>Compliance Brief Generator</h3>
+        <p>AI transforms complex regulation data into plain-language guidance briefs with Must / Should / Should Not sections, downloadable as colour-coded PDFs.</p>
+        <span class="badge active">In Development</span>
+      </div>
+
+      <div class="feature-card">
+        <div class="card-icon purple">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
+        </div>
+        <h3>Rule Hierarchy</h3>
+        <p>General compliance rules automatically apply across all advertising channels, with platform-specific overrides nested underneath for granular control.</p>
+        <span class="badge active">In Development</span>
       </div>
 
       <div class="feature-card">
@@ -666,11 +684,26 @@
           <li>Created a migration script to bring 416 existing rules into the unified system</li>
           <li>Added a public development progress page</li>
         </ul>
+        <div class="timeline-session">Session 4 — Brief Generator, Source Management & Rule Hierarchy</div>
+        <ul class="timeline-items">
+          <li>Built an AI-powered compliance brief generator that translates raw rules into plain-language guidance</li>
+          <li>Guidance structured as Must / Should / Should Not / Prohibited sections with source references</li>
+          <li>Added PDF export of compliance briefs with colour-coded sections and scope summaries</li>
+          <li>Enhanced source search to query real legislation and platform policy URLs across the web</li>
+          <li>Optimised source search speed by switching to a faster AI model (3-5x improvement)</li>
+          <li>Built source management: accept/reject suggested sources, manual source creation, and auto-generate rule content from linked legislation</li>
+          <li>Introduced rule hierarchy — general rules apply to all channels, with channel-specific overrides nested underneath</li>
+          <li>General rules now automatically propagate to all advertising platforms at runtime</li>
+          <li>Consolidated deployment to a single production instance on the latest version</li>
+        </ul>
         <div class="timeline-tags">
           <span class="tag">knowledge base</span>
           <span class="tag">AI rule editor</span>
           <span class="tag">AI source finder</span>
           <span class="tag">AI update checker</span>
+          <span class="tag">brief generator</span>
+          <span class="tag">PDF export</span>
+          <span class="tag">rule hierarchy</span>
           <span class="tag">416 rules migrated</span>
           <span class="tag">in progress</span>
         </div>
