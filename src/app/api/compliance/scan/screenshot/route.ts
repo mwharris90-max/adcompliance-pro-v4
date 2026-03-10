@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from "cloudinary";
-import { captureScreenshot } from "@/lib/scanner/screenshot";
+// Dynamic import to keep puppeteer-core out of the function bundle at parse time
 import { internalError } from "@/lib/api-error";
 
 export const maxDuration = 60;
@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // Capture screenshot via ApiFlash
+    // Capture screenshot
+    const { captureScreenshot } = await import("@/lib/scanner/screenshot");
     const { clean } = await captureScreenshot(url);
 
     // Upload to Cloudinary

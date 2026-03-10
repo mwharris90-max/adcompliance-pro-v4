@@ -3,7 +3,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import { extractPage, type PageExtraction } from "@/lib/scanner/extract";
-import { captureScreenshot, buildAnnotations } from "@/lib/scanner/screenshot";
+// Dynamic import to avoid bundling puppeteer-core when screenshots aren't used
+// import { captureScreenshot, buildAnnotations } from "@/lib/scanner/screenshot";
 import { deductCredits } from "@/lib/usage";
 import { internalError } from "@/lib/api-error";
 import { v2 as cloudinary } from "cloudinary";
@@ -265,6 +266,7 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
 
     if (withScreenshot && (process.env.BROWSERLESS_TOKEN || process.env.APIFLASH_ACCESS_KEY)) {
       try {
+        const { captureScreenshot, buildAnnotations } = await import("@/lib/scanner/screenshot");
         const annotations = buildAnnotations(report.findings);
         const { clean, annotated } = await captureScreenshot(url, annotations);
 
