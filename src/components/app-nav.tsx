@@ -20,6 +20,7 @@ import {
   X,
   FileText,
   BookOpen,
+  Scan,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,10 +77,11 @@ const navGroups: NavGroup[] = [
   {
     label: "Check",
     icon: ClipboardCheck,
-    prefixes: ["/app/check", "/app/bulk-jobs"],
+    prefixes: ["/app/check", "/app/bulk-jobs", "/app/site-scanner"],
     items: [
       { href: "/app/check", label: "New Check", icon: ClipboardCheck },
       { href: "/app/bulk-jobs", label: "Bulk Jobs", icon: FileSpreadsheet },
+      { href: "/app/site-scanner", label: "Site Scanner", icon: Scan },
     ],
   },
   {
