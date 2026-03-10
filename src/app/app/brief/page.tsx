@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Monitor,
@@ -13,6 +13,7 @@ import {
   ShieldX,
   AlertTriangle,
   Scale,
+  ClipboardCheck,
   Ruler,
   ChevronDown,
   ChevronRight,
@@ -24,6 +25,8 @@ import {
   CheckCircle2,
   Info,
   XCircle,
+  Search,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +44,7 @@ interface Category {
   id: string;
   name: string;
   description?: string;
+  parentId?: string | null;
 }
 interface Country {
   id: string;
@@ -53,11 +57,24 @@ interface GuidanceItem {
   source: string;
 }
 
+interface LegislationItem {
+  name: string;
+  summary: string;
+  jurisdiction: string;
+}
+
+interface PracticalRequirement {
+  requirement: string;
+  source: string;
+}
+
 interface Guidance {
   prohibited: GuidanceItem[];
   must: GuidanceItem[];
   should: GuidanceItem[];
   shouldNot: GuidanceItem[];
+  legislationSummary?: LegislationItem[];
+  practicalRequirements?: PracticalRequirement[];
 }
 
 interface BriefData {
@@ -188,6 +205,354 @@ function MultiSelect({
           <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
             <div className="p-1">
               {items.map((item) => {
+                const isSelected = selected.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => toggle(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors",
+                      isSelected
+                        ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                        : "text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+                        isSelected
+                          ? "bg-[#1A56DB] border-[#1A56DB]"
+                          : "border-slate-300"
+                      )}
+                    >
+                      {isSelected && (
+                        <svg
+                          className="h-3 w-3 text-white"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    {item.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Category Picker (grouped + searchable) ──────────────────────────────
+
+function CategoryPicker({
+  categories,
+  selected,
+  onChange,
+}: {
+  categories: Category[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Build parent groups
+  const { groups, ungrouped } = useMemo(() => {
+    const parents = categories.filter((c) => !c.parentId);
+    const children = categories.filter((c) => c.parentId);
+    const parentMap = new Map<string, Category[]>();
+    for (const child of children) {
+      const list = parentMap.get(child.parentId!) ?? [];
+      list.push(child);
+      parentMap.set(child.parentId!, list);
+    }
+    const grouped: { parent: Category; children: Category[] }[] = [];
+    const standalone: Category[] = [];
+    for (const p of parents) {
+      const kids = parentMap.get(p.id);
+      if (kids && kids.length > 0) {
+        grouped.push({ parent: p, children: kids });
+      } else {
+        standalone.push(p);
+      }
+    }
+    return { groups: grouped, ungrouped: standalone };
+  }, [categories]);
+
+  // Filter by search
+  const lowerSearch = search.toLowerCase();
+  const filteredGroups = useMemo(() => {
+    if (!search) return groups;
+    return groups
+      .map((g) => {
+        const parentMatch = g.parent.name.toLowerCase().includes(lowerSearch);
+        const matchingChildren = g.children.filter((c) =>
+          c.name.toLowerCase().includes(lowerSearch)
+        );
+        if (parentMatch) return g; // show whole group
+        if (matchingChildren.length > 0)
+          return { ...g, children: matchingChildren };
+        return null;
+      })
+      .filter(Boolean) as typeof groups;
+  }, [groups, search, lowerSearch]);
+
+  const filteredUngrouped = useMemo(() => {
+    if (!search) return ungrouped;
+    return ungrouped.filter((c) =>
+      c.name.toLowerCase().includes(lowerSearch)
+    );
+  }, [ungrouped, search, lowerSearch]);
+
+  const toggle = (id: string) => {
+    onChange(
+      selected.includes(id)
+        ? selected.filter((s) => s !== id)
+        : [...selected, id]
+    );
+  };
+
+  const toggleGroup = (parent: Category, children: Category[]) => {
+    const allIds = [parent.id, ...children.map((c) => c.id)];
+    const allSelected = allIds.every((id) => selected.includes(id));
+    if (allSelected) {
+      onChange(selected.filter((s) => !allIds.includes(s)));
+    } else {
+      onChange([...new Set([...selected, ...allIds])]);
+    }
+  };
+
+  const selectedNames = categories
+    .filter((i) => selected.includes(i.id))
+    .map((i) => i.name);
+
+  const totalResults =
+    filteredGroups.reduce((sum, g) => sum + 1 + g.children.length, 0) +
+    filteredUngrouped.length;
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen(!open);
+          if (!open) setTimeout(() => searchRef.current?.focus(), 50);
+        }}
+        className={cn(
+          "w-full flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors",
+          open
+            ? "border-[#1A56DB] ring-1 ring-[#1A56DB]/20"
+            : "border-slate-200 hover:border-slate-300",
+          selected.length === 0 && "text-slate-400"
+        )}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Tag className="h-4 w-4 text-slate-400 shrink-0" />
+          {selectedNames.length === 0 ? (
+            <span>Select categories...</span>
+          ) : selectedNames.length <= 2 ? (
+            <span className="truncate text-slate-900">
+              {selectedNames.join(", ")}
+            </span>
+          ) : (
+            <span className="text-slate-900">
+              {selectedNames.slice(0, 2).join(", ")}{" "}
+              <span className="text-slate-400">
+                +{selectedNames.length - 2}
+              </span>
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 text-slate-400 transition-transform shrink-0",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => {
+              setOpen(false);
+              setSearch("");
+            }}
+          />
+          <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg"
+               style={{ minWidth: 320 }}>
+            {/* Search bar */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
+              <Search className="h-4 w-4 text-slate-400 shrink-0" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search categories..."
+                className="flex-1 text-sm outline-none bg-transparent text-slate-900 placeholder:text-slate-400"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Selected count + clear */}
+            {selected.length > 0 && (
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-slate-100 bg-slate-50">
+                <span className="text-xs text-slate-500">
+                  {selected.length} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange([])}
+                  className="text-xs text-[#1A56DB] hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable list */}
+            <div className="max-h-72 overflow-y-auto p-1">
+              {totalResults === 0 && (
+                <p className="px-3 py-4 text-sm text-slate-400 text-center">
+                  No categories match &ldquo;{search}&rdquo;
+                </p>
+              )}
+
+              {/* Grouped categories */}
+              {filteredGroups.map((group) => {
+                const allIds = [group.parent.id, ...group.children.map((c) => c.id)];
+                const allSelected = allIds.every((id) => selected.includes(id));
+                const someSelected = !allSelected && allIds.some((id) => selected.includes(id));
+
+                return (
+                  <div key={group.parent.id} className="mb-1">
+                    {/* Parent header */}
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.parent, group.children)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors font-medium",
+                        allSelected
+                          ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                          : "text-slate-900 hover:bg-slate-50"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+                          allSelected
+                            ? "bg-[#1A56DB] border-[#1A56DB]"
+                            : someSelected
+                              ? "bg-[#1A56DB]/30 border-[#1A56DB]"
+                              : "border-slate-300"
+                        )}
+                      >
+                        {(allSelected || someSelected) && (
+                          <svg
+                            className="h-3 w-3 text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            {allSelected ? (
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            ) : (
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 12h14"
+                              />
+                            )}
+                          </svg>
+                        )}
+                      </div>
+                      {group.parent.name}
+                      <span className="text-xs text-slate-400 ml-auto">
+                        {group.children.length}
+                      </span>
+                    </button>
+                    {/* Children */}
+                    <div className="ml-5 border-l border-slate-100 pl-2">
+                      {group.children.map((child) => {
+                        const isSelected = selected.includes(child.id);
+                        return (
+                          <button
+                            key={child.id}
+                            type="button"
+                            onClick={() => toggle(child.id)}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left transition-colors",
+                              isSelected
+                                ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                                : "text-slate-700 hover:bg-slate-50"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0",
+                                isSelected
+                                  ? "bg-[#1A56DB] border-[#1A56DB]"
+                                  : "border-slate-300"
+                              )}
+                            >
+                              {isSelected && (
+                                <svg
+                                  className="h-2.5 w-2.5 text-white"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={3}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            {child.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Ungrouped / standalone categories */}
+              {filteredUngrouped.length > 0 && filteredGroups.length > 0 && (
+                <div className="h-px bg-slate-100 my-1" />
+              )}
+              {filteredUngrouped.map((item) => {
                 const isSelected = selected.includes(item.id);
                 return (
                   <button
@@ -522,10 +887,8 @@ export default function BriefPage() {
               <label className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5 block">
                 Categories
               </label>
-              <MultiSelect
-                label="Categories"
-                icon={Tag}
-                items={categories}
+              <CategoryPicker
+                categories={categories}
                 selected={selectedCategories}
                 onChange={setSelectedCategories}
               />
@@ -742,6 +1105,69 @@ export default function BriefPage() {
                   <div className="mt-4 space-y-3">
                     {guidance.shouldNot.map((item, i) => (
                       <GuidanceCard key={i} item={item} variant="shouldNot" />
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* Key Legislation */}
+              {guidance.legislationSummary && guidance.legislationSummary.length > 0 && (
+                <Section
+                  title="Key Legislation"
+                  icon={Scale}
+                  iconColor="bg-purple-500"
+                  count={guidance.legislationSummary.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.legislationSummary.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 p-3 rounded-lg border bg-purple-50 border-purple-100"
+                      >
+                        <Scale className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-purple-600 mt-0.5">
+                            {item.jurisdiction}
+                          </p>
+                          <p className="text-sm text-slate-700 mt-1">
+                            {item.summary}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* Practical Requirements */}
+              {guidance.practicalRequirements && guidance.practicalRequirements.length > 0 && (
+                <Section
+                  title="Practical Requirements — Action Items"
+                  icon={ClipboardCheck}
+                  iconColor="bg-green-500"
+                  count={guidance.practicalRequirements.length}
+                >
+                  <div className="mt-4 space-y-3">
+                    {guidance.practicalRequirements.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 p-3 rounded-lg border bg-green-50 border-green-100"
+                      >
+                        <ClipboardCheck className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-900">
+                            {item.requirement}
+                          </p>
+                          {item.source && (
+                            <p className="text-xs text-green-600 mt-1">
+                              {item.source}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </Section>

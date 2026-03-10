@@ -25,6 +25,8 @@ export async function POST(req: NextRequest) {
         should: { text: string; source: string }[];
         shouldNot: { text: string; source: string }[];
         prohibited: { text: string; source: string }[];
+        legislationSummary?: { name: string; summary: string; jurisdiction: string }[];
+        practicalRequirements?: { requirement: string; source: string }[];
       };
     };
 
