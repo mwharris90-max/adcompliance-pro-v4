@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: `You are an advertising compliance advisor creating a plain-language compliance brief for a marketing team onboarding a new client.
 
 Your job is to translate technical compliance rules, conditions, and regulations into clear, actionable guidance that a non-technical marketing professional can understand and follow.
@@ -176,26 +176,30 @@ ${JSON.stringify(rulesContext, null, 2)}
 INSTRUCTIONS:
 Use the generate_guidance tool to produce structured guidance. Be concise — aim for content that fits 1-2 printed pages. If there is a lot of important information, it is acceptable to go longer, but prioritise the most critical items and avoid repetition.
 
-Generate the following sections:
+IMPORTANT: When multiple categories are selected, you MUST separate guidance into:
+- "universal" — requirements that apply across ALL selected categories (e.g. general GDPR rules, platform-wide policies, country-level advertising standards that are not category-specific)
+- "categorySpecific" — requirements that only apply to a specific category. Create one entry per category that has category-specific rules.
 
-1. PROHIBITED — Things that are completely banned. The ad cannot run at all for these categories/contexts.
-2. MUST — Mandatory legal or regulatory requirements. Failing these means the ad is non-compliant.
-3. SHOULD — Best practices and strong recommendations. Not strictly required but highly advisable.
-4. SHOULD NOT — Things to avoid. Not outright banned but likely to cause compliance issues.
-5. LEGISLATION SUMMARY — Name each relevant law, regulation, or industry code and provide a one or two sentence plain-English summary of what it means for advertisers. Include the jurisdiction.
-6. PRACTICAL REQUIREMENTS — Call out specific, concrete operational requirements that the team needs to action. Examples: displaying a particular badge or logo, maintaining a local office or representative, obtaining a specific certification or licence, implementing age-gating, including mandatory disclaimer text, keeping records for a specified period, etc. Only include items that are genuinely required — do not speculate.
+If only one category is selected, put everything in "universal" and leave "categorySpecific" empty.
+
+For each section, generate these tiers:
+1. PROHIBITED — Things that are completely banned. The ad cannot run at all.
+2. MUST — Mandatory legal or regulatory requirements. Failing these means non-compliance.
+3. SHOULD — Best practices and strong recommendations.
+4. SHOULD NOT — Things to avoid.
+5. LEGISLATION SUMMARY — Name each relevant law/regulation/code with a 1-2 sentence plain-English summary and jurisdiction.
+6. PRACTICAL REQUIREMENTS — Concrete operational requirements: badges, local offices, certifications, licences, age-gating, mandatory disclaimer text, record-keeping periods, etc. Only include genuinely required items.
 
 For each guidance item:
-- Write in plain, non-technical English that a marketing team member can understand
-- Be specific about what the requirement actually means in practice
-- Reference which platform, country, or regulation the requirement comes from in the "source" field
-- Do not use JSON, code, or technical jargon in the guidance text
-- Turn structured conditions (like ageGate, disclaimers, time restrictions) into human-readable sentences
+- Write in plain, non-technical English
+- Be specific about what the requirement means in practice
+- Reference the platform, country, or regulation in the "source" field
+- Turn structured conditions into human-readable sentences
 
 Examples of good guidance text:
-- "Include a clear 'Drink Responsibly' disclaimer in all ad copy" (not "disclaimer.required: true, disclaimer.text: 'Drink Responsibly'")
-- "Do not target users under 18 years of age" (not "ageGate.minimumAge: 18")
-- "Ads must not run between 6am and 9pm" (not "timeRestrictions: {startTime: '06:00', endTime: '21:00'}")
+- "Include a clear 'Drink Responsibly' disclaimer in all ad copy"
+- "Do not target users under 18 years of age"
+- "Ads must not run between 6am and 9pm"
 
 If there are no rules for a category, still include general best-practice guidance for the platforms and countries selected.`,
       messages: [
@@ -208,85 +212,170 @@ If there are no rules for a category, still include general best-practice guidan
         {
           name: "generate_guidance",
           description:
-            "Generate structured compliance guidance in Must/Should/Should Not format.",
+            "Generate structured compliance guidance grouped into universal (all categories) and category-specific sections.",
           input_schema: {
             type: "object" as const,
             properties: {
-              prohibited: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    text: { type: "string", description: "Plain-language description of what is prohibited" },
-                    source: { type: "string", description: "Which regulation, platform policy, or country law" },
+              universal: {
+                type: "object",
+                description: "Guidance that applies across ALL selected categories",
+                properties: {
+                  prohibited: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string", description: "Plain-language description of what is prohibited" },
+                        source: { type: "string", description: "Which regulation, platform policy, or country law" },
+                      },
+                      required: ["text", "source"],
+                    },
+                    description: "Things that are completely banned",
                   },
-                  required: ["text", "source"],
+                  must: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string", description: "Plain-language description of mandatory requirement" },
+                        source: { type: "string", description: "Which regulation, platform policy, or country law" },
+                      },
+                      required: ["text", "source"],
+                    },
+                    description: "Mandatory requirements — must comply",
+                  },
+                  should: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string", description: "Plain-language description of recommended practice" },
+                        source: { type: "string", description: "Source of the recommendation" },
+                      },
+                      required: ["text", "source"],
+                    },
+                    description: "Recommended best practices",
+                  },
+                  shouldNot: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string", description: "Plain-language description of what to avoid" },
+                        source: { type: "string", description: "Source of the guidance" },
+                      },
+                      required: ["text", "source"],
+                    },
+                    description: "Things to avoid",
+                  },
+                  legislationSummary: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string", description: "Name of the law, regulation, or code" },
+                        summary: { type: "string", description: "One or two sentence plain-English summary" },
+                        jurisdiction: { type: "string", description: "Which country or region" },
+                      },
+                      required: ["name", "summary", "jurisdiction"],
+                    },
+                    description: "Key legislation that applies universally",
+                  },
+                  practicalRequirements: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        requirement: { type: "string", description: "Specific operational requirement" },
+                        source: { type: "string", description: "Which regulation, platform, or country requires this" },
+                      },
+                      required: ["requirement", "source"],
+                    },
+                    description: "Concrete operational requirements that apply universally",
+                  },
                 },
-                description: "Things that are completely banned",
+                required: ["prohibited", "must", "should", "shouldNot", "legislationSummary", "practicalRequirements"],
               },
-              must: {
+              categorySpecific: {
                 type: "array",
+                description: "Guidance specific to individual categories. One entry per category that has specific rules.",
                 items: {
                   type: "object",
                   properties: {
-                    text: { type: "string", description: "Plain-language description of mandatory requirement" },
-                    source: { type: "string", description: "Which regulation, platform policy, or country law" },
+                    category: { type: "string", description: "The category name this guidance applies to" },
+                    prohibited: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          text: { type: "string" },
+                          source: { type: "string" },
+                        },
+                        required: ["text", "source"],
+                      },
+                    },
+                    must: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          text: { type: "string" },
+                          source: { type: "string" },
+                        },
+                        required: ["text", "source"],
+                      },
+                    },
+                    should: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          text: { type: "string" },
+                          source: { type: "string" },
+                        },
+                        required: ["text", "source"],
+                      },
+                    },
+                    shouldNot: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          text: { type: "string" },
+                          source: { type: "string" },
+                        },
+                        required: ["text", "source"],
+                      },
+                    },
+                    legislationSummary: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          summary: { type: "string" },
+                          jurisdiction: { type: "string" },
+                        },
+                        required: ["name", "summary", "jurisdiction"],
+                      },
+                    },
+                    practicalRequirements: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          requirement: { type: "string" },
+                          source: { type: "string" },
+                        },
+                        required: ["requirement", "source"],
+                      },
+                    },
                   },
-                  required: ["text", "source"],
+                  required: ["category"],
                 },
-                description: "Mandatory requirements — must comply",
-              },
-              should: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    text: { type: "string", description: "Plain-language description of recommended practice" },
-                    source: { type: "string", description: "Source of the recommendation" },
-                  },
-                  required: ["text", "source"],
-                },
-                description: "Recommended best practices",
-              },
-              shouldNot: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    text: { type: "string", description: "Plain-language description of what to avoid" },
-                    source: { type: "string", description: "Source of the guidance" },
-                  },
-                  required: ["text", "source"],
-                },
-                description: "Things to avoid",
-              },
-              legislationSummary: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    name: { type: "string", description: "Name of the law, regulation, or code (e.g. 'UK CAP Code', 'GDPR', 'The Gambling Act 2005')" },
-                    summary: { type: "string", description: "One or two sentence plain-English summary of what this law means for advertisers" },
-                    jurisdiction: { type: "string", description: "Which country or region this applies to" },
-                  },
-                  required: ["name", "summary", "jurisdiction"],
-                },
-                description: "Key legislation and regulations that apply, with plain-English summaries",
-              },
-              practicalRequirements: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    requirement: { type: "string", description: "Specific operational requirement described in plain English" },
-                    source: { type: "string", description: "Which regulation, platform, or country requires this" },
-                  },
-                  required: ["requirement", "source"],
-                },
-                description: "Concrete operational requirements like badges, local offices, age gates, certifications, etc.",
               },
             },
-            required: ["prohibited", "must", "should", "shouldNot", "legislationSummary", "practicalRequirements"],
+            required: ["universal", "categorySpecific"],
           },
         },
       ],
@@ -294,12 +383,23 @@ If there are no rules for a category, still include general best-practice guidan
 
     let assistantText = "";
     let guidance: {
-      prohibited: { text: string; source: string }[];
-      must: { text: string; source: string }[];
-      should: { text: string; source: string }[];
-      shouldNot: { text: string; source: string }[];
-      legislationSummary: { name: string; summary: string; jurisdiction: string }[];
-      practicalRequirements: { requirement: string; source: string }[];
+      universal: {
+        prohibited: { text: string; source: string }[];
+        must: { text: string; source: string }[];
+        should: { text: string; source: string }[];
+        shouldNot: { text: string; source: string }[];
+        legislationSummary: { name: string; summary: string; jurisdiction: string }[];
+        practicalRequirements: { requirement: string; source: string }[];
+      };
+      categorySpecific: {
+        category: string;
+        prohibited?: { text: string; source: string }[];
+        must?: { text: string; source: string }[];
+        should?: { text: string; source: string }[];
+        shouldNot?: { text: string; source: string }[];
+        legislationSummary?: { name: string; summary: string; jurisdiction: string }[];
+        practicalRequirements?: { requirement: string; source: string }[];
+      }[];
     } | null = null;
 
     for (const block of response.content) {

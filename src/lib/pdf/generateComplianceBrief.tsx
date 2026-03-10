@@ -296,6 +296,41 @@ const s = StyleSheet.create({
     color: C.green700,
     marginTop: 2,
   },
+  // ── Category section ──
+  categorySectionHeader: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: C.brandDark,
+    marginTop: 18,
+    marginBottom: 10,
+    paddingBottom: 6,
+    paddingTop: 6,
+    paddingLeft: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: C.brandBlue,
+    backgroundColor: C.slate50,
+    borderRadius: 4,
+  },
+  universalHeader: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: C.brandDark,
+    marginBottom: 10,
+    paddingBottom: 6,
+    paddingTop: 6,
+    paddingLeft: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: C.slate400,
+    backgroundColor: C.slate50,
+    borderRadius: 4,
+  },
+  categoryLabel: {
+    fontSize: 7,
+    color: C.slate500,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: -2,
+  },
   // ── Info box ──
   infoBox: {
     backgroundColor: C.slate50,
@@ -356,19 +391,167 @@ export interface PracticalRequirement {
   source: string;
 }
 
+export interface GuidanceSection {
+  prohibited: { text: string; source: string }[];
+  must: { text: string; source: string }[];
+  should: { text: string; source: string }[];
+  shouldNot: { text: string; source: string }[];
+  legislationSummary?: LegislationItem[];
+  practicalRequirements?: PracticalRequirement[];
+}
+
+export interface CategoryGuidance {
+  category: string;
+  prohibited?: { text: string; source: string }[];
+  must?: { text: string; source: string }[];
+  should?: { text: string; source: string }[];
+  shouldNot?: { text: string; source: string }[];
+  legislationSummary?: LegislationItem[];
+  practicalRequirements?: PracticalRequirement[];
+}
+
 export interface BriefPdfInput {
   generatedAt: Date;
   platforms: string[];
   categories: string[];
   countries: string[];
   guidance: {
-    must: { text: string; source: string }[];
-    should: { text: string; source: string }[];
-    shouldNot: { text: string; source: string }[];
-    prohibited: { text: string; source: string }[];
-    legislationSummary?: LegislationItem[];
-    practicalRequirements?: PracticalRequirement[];
+    universal: GuidanceSection;
+    categorySpecific: CategoryGuidance[];
   };
+}
+
+// ── Reusable guidance section block ──────────────────────────────────────────
+
+function GuidanceSectionBlock({ section, showLegislation = true, showPractical = true }: { section: GuidanceSection; showLegislation?: boolean; showPractical?: boolean }) {
+  const legislation = section.legislationSummary ?? [];
+  const practical = section.practicalRequirements ?? [];
+  const hasContent = section.prohibited.length > 0 || section.must.length > 0 || section.should.length > 0 || section.shouldNot.length > 0 || (showLegislation && legislation.length > 0) || (showPractical && practical.length > 0);
+
+  if (!hasContent) return null;
+
+  return (
+    <View>
+      {/* Legislation */}
+      {showLegislation && legislation.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.legislationHeading]}>
+            <Text>Key Legislation</Text>
+            <Text style={[s.sectionCount, { color: C.purple700 }]}>{legislation.length}</Text>
+          </View>
+          {legislation.map((item, i) => (
+            <View key={i} style={s.legislationItem} wrap={false}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.legislationName}>{item.name}</Text>
+                <Text style={s.legislationJurisdiction}>{item.jurisdiction}</Text>
+                <Text style={s.legislationSummary}>{item.summary}</Text>
+              </View>
+            </View>
+          ))}
+          <View style={s.sectionDivider} />
+        </View>
+      )}
+
+      {/* Prohibited */}
+      {section.prohibited.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.prohibHeading]}>
+            <Text>Prohibited — Do Not Advertise</Text>
+            <Text style={[s.sectionCount, { color: C.red700 }]}>{section.prohibited.length}</Text>
+          </View>
+          {section.prohibited.map((item, i) => (
+            <View key={i} style={[s.guidanceItem, s.prohibItem]} wrap={false}>
+              <Text style={[s.guidanceBullet, s.prohibBullet]}>X</Text>
+              <View style={s.guidanceContent}>
+                <Text style={s.guidanceText}>{item.text}</Text>
+                {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
+              </View>
+            </View>
+          ))}
+          <View style={s.sectionDivider} />
+        </View>
+      )}
+
+      {/* Must */}
+      {section.must.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.mustHeading]}>
+            <Text>Must — Mandatory Requirements</Text>
+            <Text style={[s.sectionCount, { color: C.red700 }]}>{section.must.length}</Text>
+          </View>
+          {section.must.map((item, i) => (
+            <View key={i} style={[s.guidanceItem, s.mustItem]} wrap={false}>
+              <Text style={[s.guidanceBullet, s.mustBullet]}>!</Text>
+              <View style={s.guidanceContent}>
+                <Text style={s.guidanceText}>{item.text}</Text>
+                {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
+              </View>
+            </View>
+          ))}
+          <View style={s.sectionDivider} />
+        </View>
+      )}
+
+      {/* Should */}
+      {section.should.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.shouldHeading]}>
+            <Text>Should — Recommended Best Practice</Text>
+            <Text style={[s.sectionCount, { color: C.blue700 }]}>{section.should.length}</Text>
+          </View>
+          {section.should.map((item, i) => (
+            <View key={i} style={[s.guidanceItem, s.shouldItem]} wrap={false}>
+              <Text style={[s.guidanceBullet, s.shouldBullet]}>+</Text>
+              <View style={s.guidanceContent}>
+                <Text style={s.guidanceText}>{item.text}</Text>
+                {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
+              </View>
+            </View>
+          ))}
+          <View style={s.sectionDivider} />
+        </View>
+      )}
+
+      {/* Should Not */}
+      {section.shouldNot.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.shouldNotHeading]}>
+            <Text>Should Not — Avoid</Text>
+            <Text style={[s.sectionCount, { color: C.amber700 }]}>{section.shouldNot.length}</Text>
+          </View>
+          {section.shouldNot.map((item, i) => (
+            <View key={i} style={[s.guidanceItem, s.shouldNotItem]} wrap={false}>
+              <Text style={[s.guidanceBullet, s.shouldNotBullet]}>-</Text>
+              <View style={s.guidanceContent}>
+                <Text style={s.guidanceText}>{item.text}</Text>
+                {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
+              </View>
+            </View>
+          ))}
+          <View style={s.sectionDivider} />
+        </View>
+      )}
+
+      {/* Practical Requirements */}
+      {showPractical && practical.length > 0 && (
+        <View>
+          <View style={[s.sectionHeading, s.practicalHeading]}>
+            <Text>Practical Requirements — Action Items</Text>
+            <Text style={[s.sectionCount, { color: C.green700 }]}>{practical.length}</Text>
+          </View>
+          {practical.map((item, i) => (
+            <View key={i} style={s.practicalItem} wrap={false}>
+              <Text style={[s.guidanceBullet, s.practicalBullet]}>&#x2713;</Text>
+              <View style={s.guidanceContent}>
+                <Text style={s.guidanceText}>{item.requirement}</Text>
+                {item.source && <Text style={s.practicalSource}>{item.source}</Text>}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
 }
 
 // ── Document ────────────────────────────────────────────────────────────────
@@ -385,9 +568,6 @@ function BriefDocument({ input }: { input: BriefPdfInput }) {
   });
 
   const logoUri = getLogoDataUri();
-
-  const legislation = guidance.legislationSummary ?? [];
-  const practical = guidance.practicalRequirements ?? [];
 
   return (
     <Document
@@ -441,124 +621,33 @@ function BriefDocument({ input }: { input: BriefPdfInput }) {
             </View>
           </View>
 
-          {/* ── Key Legislation ── */}
-          {legislation.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.legislationHeading]}>
-                <Text>Key Legislation</Text>
-                <Text style={[s.sectionCount, { color: C.purple700 }]}>{legislation.length}</Text>
-              </View>
-              {legislation.map((item, i) => (
-                <View key={i} style={s.legislationItem} wrap={false}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.legislationName}>{item.name}</Text>
-                    <Text style={s.legislationJurisdiction}>{item.jurisdiction}</Text>
-                    <Text style={s.legislationSummary}>{item.summary}</Text>
-                  </View>
-                </View>
-              ))}
-              <View style={s.sectionDivider} />
-            </View>
-          )}
+          {/* ── Universal Requirements ── */}
+          <View>
+            <Text style={s.universalHeader}>
+              Universal Requirements — All Categories
+            </Text>
+            <GuidanceSectionBlock section={guidance.universal} />
+          </View>
 
-          {/* ── Prohibited ── */}
-          {guidance.prohibited.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.prohibHeading]}>
-                <Text>Prohibited — Do Not Advertise</Text>
-                <Text style={[s.sectionCount, { color: C.red700 }]}>{guidance.prohibited.length}</Text>
-              </View>
-              {guidance.prohibited.map((item, i) => (
-                <View key={i} style={[s.guidanceItem, s.prohibItem]} wrap={false}>
-                  <Text style={[s.guidanceBullet, s.prohibBullet]}>X</Text>
-                  <View style={s.guidanceContent}>
-                    <Text style={s.guidanceText}>{item.text}</Text>
-                    {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
-                  </View>
-                </View>
-              ))}
-              <View style={s.sectionDivider} />
+          {/* ── Category-Specific Sections ── */}
+          {guidance.categorySpecific.map((catSection, ci) => (
+            <View key={ci}>
+              <Text style={s.categorySectionHeader}>
+                {catSection.category}
+              </Text>
+              <Text style={s.categoryLabel}>Category-specific requirements</Text>
+              <GuidanceSectionBlock
+                section={{
+                  prohibited: catSection.prohibited ?? [],
+                  must: catSection.must ?? [],
+                  should: catSection.should ?? [],
+                  shouldNot: catSection.shouldNot ?? [],
+                  legislationSummary: catSection.legislationSummary,
+                  practicalRequirements: catSection.practicalRequirements,
+                }}
+              />
             </View>
-          )}
-
-          {/* ── Must ── */}
-          {guidance.must.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.mustHeading]}>
-                <Text>Must — Mandatory Requirements</Text>
-                <Text style={[s.sectionCount, { color: C.red700 }]}>{guidance.must.length}</Text>
-              </View>
-              {guidance.must.map((item, i) => (
-                <View key={i} style={[s.guidanceItem, s.mustItem]} wrap={false}>
-                  <Text style={[s.guidanceBullet, s.mustBullet]}>!</Text>
-                  <View style={s.guidanceContent}>
-                    <Text style={s.guidanceText}>{item.text}</Text>
-                    {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
-                  </View>
-                </View>
-              ))}
-              <View style={s.sectionDivider} />
-            </View>
-          )}
-
-          {/* ── Should ── */}
-          {guidance.should.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.shouldHeading]}>
-                <Text>Should — Recommended Best Practice</Text>
-                <Text style={[s.sectionCount, { color: C.blue700 }]}>{guidance.should.length}</Text>
-              </View>
-              {guidance.should.map((item, i) => (
-                <View key={i} style={[s.guidanceItem, s.shouldItem]} wrap={false}>
-                  <Text style={[s.guidanceBullet, s.shouldBullet]}>+</Text>
-                  <View style={s.guidanceContent}>
-                    <Text style={s.guidanceText}>{item.text}</Text>
-                    {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
-                  </View>
-                </View>
-              ))}
-              <View style={s.sectionDivider} />
-            </View>
-          )}
-
-          {/* ── Should Not ── */}
-          {guidance.shouldNot.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.shouldNotHeading]}>
-                <Text>Should Not — Avoid</Text>
-                <Text style={[s.sectionCount, { color: C.amber700 }]}>{guidance.shouldNot.length}</Text>
-              </View>
-              {guidance.shouldNot.map((item, i) => (
-                <View key={i} style={[s.guidanceItem, s.shouldNotItem]} wrap={false}>
-                  <Text style={[s.guidanceBullet, s.shouldNotBullet]}>-</Text>
-                  <View style={s.guidanceContent}>
-                    <Text style={s.guidanceText}>{item.text}</Text>
-                    {item.source && <Text style={s.guidanceSource}>{item.source}</Text>}
-                  </View>
-                </View>
-              ))}
-              <View style={s.sectionDivider} />
-            </View>
-          )}
-
-          {/* ── Practical Requirements ── */}
-          {practical.length > 0 && (
-            <View>
-              <View style={[s.sectionHeading, s.practicalHeading]}>
-                <Text>Practical Requirements — Action Items</Text>
-                <Text style={[s.sectionCount, { color: C.green700 }]}>{practical.length}</Text>
-              </View>
-              {practical.map((item, i) => (
-                <View key={i} style={s.practicalItem} wrap={false}>
-                  <Text style={[s.guidanceBullet, s.practicalBullet]}>&#x2713;</Text>
-                  <View style={s.guidanceContent}>
-                    <Text style={s.guidanceText}>{item.requirement}</Text>
-                    {item.source && <Text style={s.practicalSource}>{item.source}</Text>}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
+          ))}
 
           {/* ── Info box ── */}
           <View style={s.infoBox}>

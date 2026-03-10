@@ -27,6 +27,7 @@ import {
   XCircle,
   Search,
   X,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,13 +69,28 @@ interface PracticalRequirement {
   source: string;
 }
 
-interface Guidance {
+interface GuidanceSection {
   prohibited: GuidanceItem[];
   must: GuidanceItem[];
   should: GuidanceItem[];
   shouldNot: GuidanceItem[];
   legislationSummary?: LegislationItem[];
   practicalRequirements?: PracticalRequirement[];
+}
+
+interface CategoryGuidance {
+  category: string;
+  prohibited?: GuidanceItem[];
+  must?: GuidanceItem[];
+  should?: GuidanceItem[];
+  shouldNot?: GuidanceItem[];
+  legislationSummary?: LegislationItem[];
+  practicalRequirements?: PracticalRequirement[];
+}
+
+interface Guidance {
+  universal: GuidanceSection;
+  categorySpecific: CategoryGuidance[];
 }
 
 interface BriefData {
@@ -811,6 +827,141 @@ function GuidanceCard({
   );
 }
 
+// ── Guidance Section UI (renders all tiers for a section) ─────────────────
+
+function GuidanceSectionUI({ section }: { section: GuidanceSection }) {
+  return (
+    <>
+      {/* Key Legislation */}
+      {section.legislationSummary && section.legislationSummary.length > 0 && (
+        <Section
+          title="Key Legislation"
+          icon={Scale}
+          iconColor="bg-purple-500"
+          count={section.legislationSummary.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.legislationSummary.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 p-3 rounded-lg border bg-purple-50 border-purple-100"
+              >
+                <Scale className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-purple-600 mt-0.5">
+                    {item.jurisdiction}
+                  </p>
+                  <p className="text-sm text-slate-700 mt-1">
+                    {item.summary}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Prohibited */}
+      {section.prohibited.length > 0 && (
+        <Section
+          title="Prohibited — Do Not Advertise"
+          icon={Ban}
+          iconColor="bg-red-600"
+          count={section.prohibited.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.prohibited.map((item, i) => (
+              <GuidanceCard key={i} item={item} variant="prohibited" />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Must */}
+      {section.must.length > 0 && (
+        <Section
+          title="Must — Mandatory Requirements"
+          icon={ShieldX}
+          iconColor="bg-red-500"
+          count={section.must.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.must.map((item, i) => (
+              <GuidanceCard key={i} item={item} variant="must" />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Should */}
+      {section.should.length > 0 && (
+        <Section
+          title="Should — Recommended Best Practice"
+          icon={CheckCircle2}
+          iconColor="bg-blue-500"
+          count={section.should.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.should.map((item, i) => (
+              <GuidanceCard key={i} item={item} variant="should" />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Should Not */}
+      {section.shouldNot.length > 0 && (
+        <Section
+          title="Should Not — Avoid"
+          icon={ShieldAlert}
+          iconColor="bg-amber-500"
+          count={section.shouldNot.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.shouldNot.map((item, i) => (
+              <GuidanceCard key={i} item={item} variant="shouldNot" />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Practical Requirements */}
+      {section.practicalRequirements && section.practicalRequirements.length > 0 && (
+        <Section
+          title="Practical Requirements — Action Items"
+          icon={ClipboardCheck}
+          iconColor="bg-green-500"
+          count={section.practicalRequirements.length}
+        >
+          <div className="mt-4 space-y-3">
+            {section.practicalRequirements.map((item, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 p-3 rounded-lg border bg-green-50 border-green-100"
+              >
+                <ClipboardCheck className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-900">
+                    {item.requirement}
+                  </p>
+                  {item.source && (
+                    <p className="text-xs text-green-600 mt-1">
+                      {item.source}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}
+
 // ── Spec Type Labels ─────────────────────────────────────────────────────────
 
 const specTypeLabels: Record<string, string> = {
@@ -1147,145 +1298,55 @@ export default function BriefPage() {
             </Card>
           )}
 
-          {/* AI Guidance — Must / Should / Should Not */}
+          {/* AI Guidance — Universal + Category-Specific */}
           {guidance && (
             <>
-              {/* Prohibited */}
-              {guidance.prohibited.length > 0 && (
-                <Section
-                  title="Prohibited — Do Not Advertise"
-                  icon={Ban}
-                  iconColor="bg-red-600"
-                  count={guidance.prohibited.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.prohibited.map((item, i) => (
-                      <GuidanceCard
-                        key={i}
-                        item={item}
-                        variant="prohibited"
-                      />
-                    ))}
-                  </div>
-                </Section>
-              )}
+              {/* ── Universal Requirements ── */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-l-4 border-slate-400 pl-3 py-1">
+                  <Layers className="h-5 w-5 text-slate-500" />
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Universal Requirements — All Categories
+                  </h3>
+                </div>
 
-              {/* Must */}
-              {guidance.must.length > 0 && (
-                <Section
-                  title="Must — Mandatory Requirements"
-                  icon={ShieldX}
-                  iconColor="bg-red-500"
-                  count={guidance.must.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.must.map((item, i) => (
-                      <GuidanceCard key={i} item={item} variant="must" />
-                    ))}
-                  </div>
-                </Section>
-              )}
+                <GuidanceSectionUI section={guidance.universal} />
+              </div>
 
-              {/* Should */}
-              {guidance.should.length > 0 && (
-                <Section
-                  title="Should — Recommended Best Practice"
-                  icon={CheckCircle2}
-                  iconColor="bg-blue-500"
-                  count={guidance.should.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.should.map((item, i) => (
-                      <GuidanceCard key={i} item={item} variant="should" />
-                    ))}
+              {/* ── Category-Specific Sections ── */}
+              {guidance.categorySpecific.map((catSection, ci) => (
+                <div key={ci} className="space-y-4">
+                  <div className="flex items-center gap-2 border-l-4 border-[#1A56DB] pl-3 py-1">
+                    <Tag className="h-5 w-5 text-[#1A56DB]" />
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {catSection.category}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Category-specific requirements
+                      </p>
+                    </div>
                   </div>
-                </Section>
-              )}
 
-              {/* Should Not */}
-              {guidance.shouldNot.length > 0 && (
-                <Section
-                  title="Should Not — Avoid"
-                  icon={ShieldAlert}
-                  iconColor="bg-amber-500"
-                  count={guidance.shouldNot.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.shouldNot.map((item, i) => (
-                      <GuidanceCard key={i} item={item} variant="shouldNot" />
-                    ))}
-                  </div>
-                </Section>
-              )}
-
-              {/* Key Legislation */}
-              {guidance.legislationSummary && guidance.legislationSummary.length > 0 && (
-                <Section
-                  title="Key Legislation"
-                  icon={Scale}
-                  iconColor="bg-purple-500"
-                  count={guidance.legislationSummary.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.legislationSummary.map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-3 p-3 rounded-lg border bg-purple-50 border-purple-100"
-                      >
-                        <Scale className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-purple-600 mt-0.5">
-                            {item.jurisdiction}
-                          </p>
-                          <p className="text-sm text-slate-700 mt-1">
-                            {item.summary}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
-
-              {/* Practical Requirements */}
-              {guidance.practicalRequirements && guidance.practicalRequirements.length > 0 && (
-                <Section
-                  title="Practical Requirements — Action Items"
-                  icon={ClipboardCheck}
-                  iconColor="bg-green-500"
-                  count={guidance.practicalRequirements.length}
-                >
-                  <div className="mt-4 space-y-3">
-                    {guidance.practicalRequirements.map((item, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-3 p-3 rounded-lg border bg-green-50 border-green-100"
-                      >
-                        <ClipboardCheck className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-slate-900">
-                            {item.requirement}
-                          </p>
-                          {item.source && (
-                            <p className="text-xs text-green-600 mt-1">
-                              {item.source}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-              )}
+                  <GuidanceSectionUI
+                    section={{
+                      prohibited: catSection.prohibited ?? [],
+                      must: catSection.must ?? [],
+                      should: catSection.should ?? [],
+                      shouldNot: catSection.shouldNot ?? [],
+                      legislationSummary: catSection.legislationSummary,
+                      practicalRequirements: catSection.practicalRequirements,
+                    }}
+                  />
+                </div>
+              ))}
 
               {/* No guidance at all */}
-              {guidance.prohibited.length === 0 &&
-                guidance.must.length === 0 &&
-                guidance.should.length === 0 &&
-                guidance.shouldNot.length === 0 && (
+              {guidance.universal.prohibited.length === 0 &&
+                guidance.universal.must.length === 0 &&
+                guidance.universal.should.length === 0 &&
+                guidance.universal.shouldNot.length === 0 &&
+                guidance.categorySpecific.length === 0 && (
                   <Card className="border-slate-200 shadow-sm">
                     <CardContent className="py-12 text-center">
                       <ShieldCheck className="h-10 w-10 text-green-400 mx-auto mb-3" />

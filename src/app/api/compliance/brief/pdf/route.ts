@@ -21,12 +21,23 @@ export async function POST(req: NextRequest) {
       categoryIds: string[];
       countryIds: string[];
       guidance: {
-        must: { text: string; source: string }[];
-        should: { text: string; source: string }[];
-        shouldNot: { text: string; source: string }[];
-        prohibited: { text: string; source: string }[];
-        legislationSummary?: { name: string; summary: string; jurisdiction: string }[];
-        practicalRequirements?: { requirement: string; source: string }[];
+        universal: {
+          must: { text: string; source: string }[];
+          should: { text: string; source: string }[];
+          shouldNot: { text: string; source: string }[];
+          prohibited: { text: string; source: string }[];
+          legislationSummary?: { name: string; summary: string; jurisdiction: string }[];
+          practicalRequirements?: { requirement: string; source: string }[];
+        };
+        categorySpecific: {
+          category: string;
+          must?: { text: string; source: string }[];
+          should?: { text: string; source: string }[];
+          shouldNot?: { text: string; source: string }[];
+          prohibited?: { text: string; source: string }[];
+          legislationSummary?: { name: string; summary: string; jurisdiction: string }[];
+          practicalRequirements?: { requirement: string; source: string }[];
+        }[];
       };
     };
 
