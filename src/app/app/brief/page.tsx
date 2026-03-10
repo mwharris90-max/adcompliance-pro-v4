@@ -269,45 +269,72 @@ function CategoryPicker({
   const [search, setSearch] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // Build parent groups
+  // Build hierarchy: top-level sections with nested sub-groups and leaves
+  type SubGroup = { parent: Category; leaves: Category[] };
+  type TopGroup = { parent: Category; subGroups: SubGroup[]; directChildren: Category[] };
+
   const { groups, ungrouped } = useMemo(() => {
-    const parents = categories.filter((c) => !c.parentId);
-    const children = categories.filter((c) => c.parentId);
-    const parentMap = new Map<string, Category[]>();
-    for (const child of children) {
-      const list = parentMap.get(child.parentId!) ?? [];
-      list.push(child);
-      parentMap.set(child.parentId!, list);
-    }
-    const grouped: { parent: Category; children: Category[] }[] = [];
-    const standalone: Category[] = [];
-    for (const p of parents) {
-      const kids = parentMap.get(p.id);
-      if (kids && kids.length > 0) {
-        grouped.push({ parent: p, children: kids });
-      } else {
-        standalone.push(p);
+    const childrenOf = new Map<string, Category[]>();
+    for (const c of categories) {
+      if (c.parentId) {
+        const list = childrenOf.get(c.parentId) ?? [];
+        list.push(c);
+        childrenOf.set(c.parentId, list);
       }
+    }
+    const topLevel = categories.filter((c) => !c.parentId);
+    const grouped: TopGroup[] = [];
+    const standalone: Category[] = [];
+
+    for (const top of topLevel) {
+      const midLevel = childrenOf.get(top.id) ?? [];
+      if (midLevel.length === 0) {
+        standalone.push(top);
+        continue;
+      }
+      const subGroups: SubGroup[] = [];
+      const directChildren: Category[] = [];
+      for (const mid of midLevel) {
+        const leaves = childrenOf.get(mid.id) ?? [];
+        if (leaves.length > 0) {
+          subGroups.push({ parent: mid, leaves });
+        } else {
+          directChildren.push(mid);
+        }
+      }
+      grouped.push({ parent: top, subGroups, directChildren });
     }
     return { groups: grouped, ungrouped: standalone };
   }, [categories]);
 
   // Filter by search
   const lowerSearch = search.toLowerCase();
+
   const filteredGroups = useMemo(() => {
     if (!search) return groups;
     return groups
       .map((g) => {
-        const parentMatch = g.parent.name.toLowerCase().includes(lowerSearch);
-        const matchingChildren = g.children.filter((c) =>
+        const topMatch = g.parent.name.toLowerCase().includes(lowerSearch);
+        if (topMatch) return g;
+        const filteredSubs = g.subGroups
+          .map((sg) => {
+            const subMatch = sg.parent.name.toLowerCase().includes(lowerSearch);
+            if (subMatch) return sg;
+            const matchLeaves = sg.leaves.filter((l) =>
+              l.name.toLowerCase().includes(lowerSearch)
+            );
+            if (matchLeaves.length > 0) return { ...sg, leaves: matchLeaves };
+            return null;
+          })
+          .filter(Boolean) as SubGroup[];
+        const filteredDirect = g.directChildren.filter((c) =>
           c.name.toLowerCase().includes(lowerSearch)
         );
-        if (parentMatch) return g; // show whole group
-        if (matchingChildren.length > 0)
-          return { ...g, children: matchingChildren };
+        if (filteredSubs.length > 0 || filteredDirect.length > 0)
+          return { ...g, subGroups: filteredSubs, directChildren: filteredDirect };
         return null;
       })
-      .filter(Boolean) as typeof groups;
+      .filter(Boolean) as TopGroup[];
   }, [groups, search, lowerSearch]);
 
   const filteredUngrouped = useMemo(() => {
@@ -325,13 +352,27 @@ function CategoryPicker({
     );
   };
 
-  const toggleGroup = (parent: Category, children: Category[]) => {
-    const allIds = [parent.id, ...children.map((c) => c.id)];
-    const allSelected = allIds.every((id) => selected.includes(id));
+  // Collect all descendant IDs for a group
+  const getAllIds = (g: TopGroup): string[] => {
+    const ids = [g.parent.id];
+    for (const sg of g.subGroups) {
+      ids.push(sg.parent.id, ...sg.leaves.map((l) => l.id));
+    }
+    ids.push(...g.directChildren.map((c) => c.id));
+    return ids;
+  };
+
+  const getSubGroupIds = (sg: SubGroup): string[] => [
+    sg.parent.id,
+    ...sg.leaves.map((l) => l.id),
+  ];
+
+  const toggleIds = (ids: string[]) => {
+    const allSelected = ids.every((id) => selected.includes(id));
     if (allSelected) {
-      onChange(selected.filter((s) => !allIds.includes(s)));
+      onChange(selected.filter((s) => !ids.includes(s)));
     } else {
-      onChange([...new Set([...selected, ...allIds])]);
+      onChange([...new Set([...selected, ...ids])]);
     }
   };
 
@@ -340,8 +381,14 @@ function CategoryPicker({
     .map((i) => i.name);
 
   const totalResults =
-    filteredGroups.reduce((sum, g) => sum + 1 + g.children.length, 0) +
-    filteredUngrouped.length;
+    filteredGroups.reduce(
+      (sum, g) =>
+        sum +
+        1 +
+        g.directChildren.length +
+        g.subGroups.reduce((s2, sg) => s2 + 1 + sg.leaves.length, 0),
+      0
+    ) + filteredUngrouped.length;
 
   return (
     <div className="relative">
@@ -443,18 +490,19 @@ function CategoryPicker({
 
               {/* Grouped categories */}
               {filteredGroups.map((group) => {
-                const allIds = [group.parent.id, ...group.children.map((c) => c.id)];
+                const allIds = getAllIds(group);
                 const allSelected = allIds.every((id) => selected.includes(id));
                 const someSelected = !allSelected && allIds.some((id) => selected.includes(id));
+                const childCount = allIds.length - 1;
 
                 return (
                   <div key={group.parent.id} className="mb-1">
-                    {/* Parent header */}
+                    {/* Top-level group header */}
                     <button
                       type="button"
-                      onClick={() => toggleGroup(group.parent, group.children)}
+                      onClick={() => toggleIds(allIds)}
                       className={cn(
-                        "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors font-medium",
+                        "w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm text-left transition-colors font-semibold",
                         allSelected
                           ? "bg-[#1A56DB]/10 text-[#1A56DB]"
                           : "text-slate-900 hover:bg-slate-50"
@@ -471,37 +519,107 @@ function CategoryPicker({
                         )}
                       >
                         {(allSelected || someSelected) && (
-                          <svg
-                            className="h-3 w-3 text-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={3}
-                          >
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             {allSelected ? (
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M5 13l4 4L19 7"
-                              />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             ) : (
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M5 12h14"
-                              />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
                             )}
                           </svg>
                         )}
                       </div>
                       {group.parent.name}
                       <span className="text-xs text-slate-400 ml-auto">
-                        {group.children.length}
+                        {childCount}
                       </span>
                     </button>
-                    {/* Children */}
+
                     <div className="ml-5 border-l border-slate-100 pl-2">
-                      {group.children.map((child) => {
+                      {/* Sub-groups (e.g. Insurance Products > Pet Insurance, etc.) */}
+                      {group.subGroups.map((sg) => {
+                        const sgIds = getSubGroupIds(sg);
+                        const sgAllSelected = sgIds.every((id) => selected.includes(id));
+                        const sgSomeSelected = !sgAllSelected && sgIds.some((id) => selected.includes(id));
+
+                        return (
+                          <div key={sg.parent.id} className="mb-0.5">
+                            {/* Sub-group header */}
+                            <button
+                              type="button"
+                              onClick={() => toggleIds(sgIds)}
+                              className={cn(
+                                "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left transition-colors font-medium",
+                                sgAllSelected
+                                  ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                                  : "text-slate-800 hover:bg-slate-50"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0",
+                                  sgAllSelected
+                                    ? "bg-[#1A56DB] border-[#1A56DB]"
+                                    : sgSomeSelected
+                                      ? "bg-[#1A56DB]/30 border-[#1A56DB]"
+                                      : "border-slate-300"
+                                )}
+                              >
+                                {(sgAllSelected || sgSomeSelected) && (
+                                  <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    {sgAllSelected ? (
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    ) : (
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+                                    )}
+                                  </svg>
+                                )}
+                              </div>
+                              {sg.parent.name}
+                              <span className="text-xs text-slate-400 ml-auto">
+                                {sg.leaves.length}
+                              </span>
+                            </button>
+                            {/* Leaves */}
+                            <div className="ml-5 border-l border-slate-100 pl-2">
+                              {sg.leaves.map((leaf) => {
+                                const isSelected = selected.includes(leaf.id);
+                                return (
+                                  <button
+                                    key={leaf.id}
+                                    type="button"
+                                    onClick={() => toggle(leaf.id)}
+                                    className={cn(
+                                      "w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-left transition-colors",
+                                      isSelected
+                                        ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                                        : "text-slate-700 hover:bg-slate-50"
+                                    )}
+                                  >
+                                    <div
+                                      className={cn(
+                                        "h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0",
+                                        isSelected
+                                          ? "bg-[#1A56DB] border-[#1A56DB]"
+                                          : "border-slate-300"
+                                      )}
+                                    >
+                                      {isSelected && (
+                                        <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    {leaf.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Direct children (no further nesting) */}
+                      {group.directChildren.map((child) => {
                         const isSelected = selected.includes(child.id);
                         return (
                           <button
@@ -524,18 +642,8 @@ function CategoryPicker({
                               )}
                             >
                               {isSelected && (
-                                <svg
-                                  className="h-2.5 w-2.5 text-white"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={3}
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M5 13l4 4L19 7"
-                                  />
+                                <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
                             </div>
