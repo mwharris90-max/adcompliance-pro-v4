@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -33,49 +34,28 @@ interface AppSidebarProps {
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   match?: "exact" | "prefix";
+  color: string;
 }
 
 const mainNav: NavItem[] = [
-  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, match: "exact" },
-  { href: "/app/check", label: "New Check", icon: ClipboardCheck, match: "exact" },
-  { href: "/app/bulk-jobs", label: "Bulk Jobs", icon: FileSpreadsheet },
-  { href: "/app/checks", label: "Results", icon: History },
-  { href: "/app/brief", label: "Compliance Brief", icon: FileText },
-  { href: "/app/learn", label: "Policy Library", icon: BookOpen },
+  { href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, match: "exact", color: "#2dd4bf" },
+  { href: "/app/check", label: "New Check", icon: ClipboardCheck, match: "exact", color: "#60a5fa" },
+  { href: "/app/bulk-jobs", label: "Bulk Jobs", icon: FileSpreadsheet, color: "#a78bfa" },
+  { href: "/app/checks", label: "Results", icon: History, color: "#fbbf24" },
+  { href: "/app/brief", label: "Compliance Brief", icon: FileText, color: "#38bdf8" },
+  { href: "/app/learn", label: "Policy Library", icon: BookOpen, color: "#4ade80" },
 ];
 
 const secondaryNav: NavItem[] = [
-  { href: "/app/site-scanner", label: "Site Scanner", icon: Scan },
-  { href: "/app/integrations", label: "Integrations", icon: Link2 },
+  { href: "/app/site-scanner", label: "Site Scanner", icon: Scan, color: "#fb923c" },
+  { href: "/app/integrations", label: "Integrations", icon: Link2, color: "#f87171" },
 ];
 
 function isActive(pathname: string, href: string, match?: "exact" | "prefix") {
   if (match === "exact") return pathname === href;
   return pathname.startsWith(href);
-}
-
-function RadarLogo() {
-  return (
-    <svg className="aug-logo-mark" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="27" stroke="#0e9488" strokeWidth="0.8" strokeOpacity="0.3" fill="none" />
-      <circle cx="32" cy="32" r="19" stroke="#0e9488" strokeWidth="1" strokeOpacity="0.45" fill="none" />
-      <circle cx="32" cy="32" r="11" stroke="#0e9488" strokeWidth="1.2" strokeOpacity="0.6" fill="none" />
-      <line x1="32" y1="5" x2="32" y2="59" stroke="#0e9488" strokeWidth="0.5" strokeOpacity="0.2" />
-      <line x1="5" y1="32" x2="59" y2="32" stroke="#0e9488" strokeWidth="0.5" strokeOpacity="0.2" />
-      <g style={{ transformOrigin: "32px 32px", animation: "augRadarSpin 4s linear infinite" }}>
-        <line x1="32" y1="32" x2="32" y2="5" stroke="url(#sidebarGrad)" strokeWidth="1.8" strokeLinecap="round" />
-      </g>
-      <circle cx="32" cy="32" r="2.5" fill="#2dd4bf" />
-      <defs>
-        <linearGradient id="sidebarGrad" x1="32" y1="32" x2="32" y2="5" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#2dd4bf" stopOpacity="1" />
-          <stop offset="100%" stopColor="#2dd4bf" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
 }
 
 function CheckditsPill() {
@@ -110,11 +90,32 @@ function CheckditsPill() {
   );
 }
 
+function NavLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      className={`aug-nav-item${active ? " active" : ""}`}
+      style={active ? {
+        "--nav-color": item.color,
+        borderLeftColor: item.color,
+        color: item.color,
+        background: `${item.color}0d`,
+      } as React.CSSProperties : {}}
+    >
+      <Icon
+        className="aug-nav-icon"
+        style={active ? { color: item.color, opacity: 1 } : { color: item.color, opacity: 0.5 }}
+      />
+      {item.label}
+    </Link>
+  );
+}
+
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile sidebar on navigation
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -125,56 +126,37 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   const sidebar = (
     <>
-      {/* Logo */}
+      {/* Logo lockup */}
       <Link href="/app/dashboard" className="aug-sidebar-logo" style={{ textDecoration: "none" }}>
-        <RadarLogo />
-        <span className="aug-logo-name">Augur</span>
+        <Image
+          src="/augur-teal-lockup.svg"
+          alt="Augur"
+          width={160}
+          height={42}
+          priority
+          style={{ height: 42, width: "auto" }}
+        />
       </Link>
 
       {/* Main nav */}
       <nav className="aug-sidebar-nav">
-        {mainNav.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(pathname, item.href, item.match);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`aug-nav-item${active ? " active" : ""}`}
-            >
-              <Icon className="aug-nav-icon" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {mainNav.map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item.href, item.match)} />
+        ))}
 
         <div className="aug-nav-divider" />
 
-        {secondaryNav.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(pathname, item.href, item.match);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`aug-nav-item${active ? " active" : ""}`}
-            >
-              <Icon className="aug-nav-icon" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {secondaryNav.map((item) => (
+          <NavLink key={item.href} item={item} active={isActive(pathname, item.href, item.match)} />
+        ))}
 
         {user.role === "ADMIN" && (
           <>
             <div className="aug-nav-divider" />
-            <Link
-              href="/admin"
-              className={`aug-nav-item${pathname.startsWith("/admin") ? " active" : ""}`}
-            >
-              <Shield className="aug-nav-icon" />
-              Admin
-            </Link>
+            <NavLink
+              item={{ href: "/admin", label: "Admin", icon: Shield, color: "#c4b5fd" }}
+              active={pathname.startsWith("/admin")}
+            />
           </>
         )}
       </nav>
@@ -191,12 +173,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </div>
         </div>
 
-        {/* Quick links under user pill */}
         <div style={{ display: "flex", gap: 4, marginTop: 8, fontSize: 10 }}>
           <Link
             href="/app/settings"
             style={{ color: "var(--aug-dim)", textDecoration: "none", padding: "3px 6px", borderRadius: 4 }}
-            className="aug-settings-link"
           >
             <Settings style={{ width: 10, height: 10, display: "inline", marginRight: 3, verticalAlign: "middle" }} />
             Settings
@@ -224,7 +204,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   return (
     <>
-      {/* Mobile toggle */}
       <button
         className="aug-mobile-toggle"
         onClick={() => setMobileOpen(!mobileOpen)}
@@ -233,12 +212,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
         {mobileOpen ? <X style={{ width: 20, height: 20 }} /> : <Menu style={{ width: 20, height: 20 }} />}
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="aug-mobile-overlay open" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`aug-sidebar${mobileOpen ? " open" : ""}`}>
         {sidebar}
       </aside>

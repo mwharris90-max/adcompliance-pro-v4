@@ -6,10 +6,10 @@ import Link from "next/link";
 
 function badgeStyle(status: string) {
   const base = "text-[9px] font-bold py-[2px] px-[7px] rounded-[3px] font-mono shrink-0 tracking-wide";
-  if (status === "CLEAN") return `${base} bg-[rgba(74,222,128,0.08)] text-[#4ade80] border border-[rgba(74,222,128,0.18)]`;
-  if (status === "WARNINGS") return `${base} bg-[rgba(45,212,191,0.1)] text-[#2dd4bf] border border-[rgba(45,212,191,0.18)]`;
-  if (status === "VIOLATIONS") return `${base} bg-[rgba(248,113,113,0.12)] text-[#f87171] border border-[rgba(248,113,113,0.2)]`;
-  return `${base} bg-[rgba(125,147,178,0.1)] text-[#7d93b2] border border-[rgba(125,147,178,0.18)]`;
+  if (status === "CLEAN") return `${base} bg-emerald-50 text-emerald-600 border border-emerald-200`;
+  if (status === "WARNINGS") return `${base} bg-amber-50 text-amber-600 border border-amber-200`;
+  if (status === "VIOLATIONS") return `${base} bg-red-50 text-red-600 border border-red-200`;
+  return `${base} bg-slate-100 text-slate-500 border border-slate-200`;
 }
 
 function statusLabel(status: string) {
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
   const monthTotal = monthClean + monthWarnings + monthViolations;
 
   const usagePct = usage.limit ? Math.min(100, (usage.used / usage.limit) * 100) : 0;
-  const usageColor = usage.limit && usage.used / usage.limit > 0.9 ? "#f87171" : usage.limit && usage.used / usage.limit > 0.7 ? "#f59e0b" : "#2dd4bf";
+  const usageColor = usage.limit && usage.used / usage.limit > 0.9 ? "#ef4444" : usage.limit && usage.used / usage.limit > 0.7 ? "#f59e0b" : "#0d9488";
 
   const featuredArticles = await db.policyArticle.findMany({
     where: { published: true, featured: true },
@@ -79,85 +79,85 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-full">
-      {/* ── Topbar ── */}
-      <div className="flex items-center justify-between gap-6 border-b border-[#1d2a3a] bg-[#0f1520] px-7 py-4">
+      {/* Topbar */}
+      <div className="flex items-center justify-between gap-6 border-b border-slate-200 bg-white px-7 py-4">
         <div className="min-w-0">
-          <h1 className="text-[15px] font-bold text-white truncate">
+          <h1 className="text-[15px] font-bold text-slate-900 truncate">
             Welcome back, {session?.user.name?.split(" ")[0]}
           </h1>
-          <p className="text-[11px] text-[#3a4d66] mt-px truncate">
+          <p className="text-[11px] text-slate-400 mt-px truncate">
             Check your advertising campaigns for compliance across platforms and jurisdictions
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Link
             href="/app/brief"
-            className="px-3.5 py-[7px] rounded-[7px] text-xs font-semibold text-[#7d93b2] border border-[#243348] bg-transparent hover:opacity-80"
+            className="px-3.5 py-[7px] rounded-[7px] text-xs font-semibold text-slate-600 border border-slate-300 bg-white hover:bg-slate-50 transition-colors"
           >
             Generate Brief
           </Link>
           <Link
             href="/app/check"
-            className="px-3.5 py-[7px] rounded-[7px] text-xs font-semibold text-[#021c1a] bg-[#2dd4bf] hover:opacity-85"
+            className="px-3.5 py-[7px] rounded-[7px] text-xs font-semibold text-white bg-[#0d9488] hover:bg-[#0f766e] transition-colors"
           >
             + New Check
           </Link>
         </div>
       </div>
 
-      {/* ── Body ── */}
+      {/* Body */}
       <div className="p-7">
         {/* Metric cards */}
-        <div className="grid grid-cols-4 gap-2.5 mb-5">
+        <div className="grid grid-cols-4 gap-3 mb-5">
           {/* Total Checks */}
-          <div className="bg-[#131b28] border border-[#1d2a3a] rounded-[10px] p-[18px]">
-            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-[#3a4d66] mb-2">Total Checks</div>
-            <div className="text-[32px] font-extrabold text-white leading-none mb-1">{totalChecks}</div>
-            <div className="text-xs text-[#3a4d66]">All time</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-[18px] shadow-sm">
+            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-slate-400 mb-2">Total Checks</div>
+            <div className="text-[32px] font-extrabold text-slate-900 leading-none mb-1">{totalChecks}</div>
+            <div className="text-xs text-slate-400">All time</div>
           </div>
 
           {/* Checkdits */}
-          <div className="bg-[rgba(45,212,191,0.04)] border border-[rgba(45,212,191,0.2)] rounded-[10px] p-[18px]">
-            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-[#3a4d66] mb-2">Checkdits This Month</div>
-            <div className="text-[32px] font-extrabold text-[#2dd4bf] leading-none mb-1">{usage.used}</div>
-            <div className="text-xs text-[#3a4d66]">
+          <div className="bg-teal-50/60 border border-teal-200 rounded-xl p-[18px] shadow-sm">
+            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-teal-600/70 mb-2">Checkdits This Month</div>
+            <div className="text-[32px] font-extrabold text-teal-700 leading-none mb-1">{usage.used}</div>
+            <div className="text-xs text-teal-600/60">
               {usage.limit !== null ? `of ${usage.limit} plan limit` : "Unlimited"}
             </div>
             {usage.limit !== null && (
-              <div className="mt-3 h-[3px] bg-[#18222f] rounded-sm overflow-hidden">
-                <div className="h-full rounded-sm" style={{ width: `${usagePct}%`, background: usageColor }} />
+              <div className="mt-3 h-[3px] bg-teal-100 rounded-sm overflow-hidden">
+                <div className="h-full rounded-sm transition-all" style={{ width: `${usagePct}%`, background: usageColor }} />
               </div>
             )}
           </div>
 
           {/* Issues Caught */}
-          <div className="bg-[#131b28] border border-[#1d2a3a] rounded-[10px] p-[18px]">
-            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-[#3a4d66] mb-2">Issues Caught</div>
-            <div className="text-[32px] font-extrabold text-[#f87171] leading-none mb-1">{issuesCaught}</div>
-            <div className="text-xs text-[#3a4d66]">Before campaigns went live</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-[18px] shadow-sm">
+            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-slate-400 mb-2">Issues Caught</div>
+            <div className="text-[32px] font-extrabold text-red-500 leading-none mb-1">{issuesCaught}</div>
+            <div className="text-xs text-slate-400">Before campaigns went live</div>
           </div>
 
           {/* Pass Rate */}
-          <div className="bg-[#131b28] border border-[#1d2a3a] rounded-[10px] p-[18px]">
-            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-[#3a4d66] mb-2">Pass Rate</div>
-            <div className="text-[32px] font-extrabold text-[#4ade80] leading-none mb-1">{passRate}%</div>
-            <div className="text-xs text-[#3a4d66]">{passRate >= 80 ? "Looking good" : "Room to improve"}</div>
+          <div className="bg-white border border-slate-200 rounded-xl p-[18px] shadow-sm">
+            <div className="text-[10px] font-mono tracking-[0.1em] uppercase text-slate-400 mb-2">Pass Rate</div>
+            <div className="text-[32px] font-extrabold text-emerald-500 leading-none mb-1">{passRate}%</div>
+            <div className="text-xs text-slate-400">{passRate >= 80 ? "Looking good" : "Room to improve"}</div>
           </div>
         </div>
 
-        {/* ── Lower panels ── */}
+        {/* Lower panels */}
         <div className="grid grid-cols-2 gap-3.5">
           {/* Recent Checks */}
-          <div className="bg-[#131b28] border border-[#1d2a3a] rounded-[10px] overflow-hidden">
-            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#1d2a3a]">
-              <span className="text-[13px] font-bold text-white">Recent Checks</span>
-              <Link href="/app/checks" className="text-[11px] text-[#2dd4bf] no-underline hover:opacity-80">
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-slate-100">
+              <span className="text-[13px] font-bold text-slate-900">Recent Checks</span>
+              <Link href="/app/checks" className="text-[11px] text-teal-600 no-underline hover:text-teal-700">
                 View all &rarr;
               </Link>
             </div>
             <div className="py-1">
               {recentWithNames.length === 0 ? (
-                <div className="py-6 px-[18px] text-center text-xs text-[#3a4d66]">
+                <div className="py-6 px-[18px] text-center text-xs text-slate-400">
                   No checks yet. Run your first compliance check to see results here.
                 </div>
               ) : (
@@ -165,21 +165,21 @@ export default async function DashboardPage() {
                   <Link
                     key={check.id}
                     href={`/app/check/results/${check.id}`}
-                    className="flex items-center gap-2.5 px-[18px] py-2.5 border-b border-[rgba(29,42,58,0.5)] last:border-b-0 no-underline hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                    className="flex items-center gap-2.5 px-[18px] py-2.5 border-b border-slate-50 last:border-b-0 no-underline hover:bg-slate-50/60 transition-colors"
                   >
                     <span className={badgeStyle(check.effectiveStatus)}>
                       {statusLabel(check.effectiveStatus)}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs text-[#dde5f0] truncate">
+                      <div className="text-xs text-slate-700 truncate">
                         {check.platformNames.join(" + ")}
                         {check.countryIds.length > 0 && (
                           <> &middot; {check.countryIds.length} {check.countryIds.length === 1 ? "country" : "countries"}</>
                         )}
                       </div>
-                      <div className="text-[10px] text-[#3a4d66] font-mono">{check.effectiveSource}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{check.effectiveSource}</div>
                     </div>
-                    <span className="text-[10px] text-[#3a4d66] font-mono shrink-0">
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
                       {format(new Date(check.createdAt), "d MMM, HH:mm")}
                     </span>
                   </Link>
@@ -189,68 +189,66 @@ export default async function DashboardPage() {
           </div>
 
           {/* Monthly Chart */}
-          <div className="bg-[#131b28] border border-[#1d2a3a] rounded-[10px] overflow-hidden">
-            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-[#1d2a3a]">
-              <span className="text-[13px] font-bold text-white">Monthly checks</span>
-              <span className="text-[10px] font-mono text-[#3a4d66]">{format(new Date(), "MMMM yyyy")}</span>
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-slate-100">
+              <span className="text-[13px] font-bold text-slate-900">Monthly checks</span>
+              <span className="text-[10px] font-mono text-slate-400">{format(new Date(), "MMMM yyyy")}</span>
             </div>
 
             {monthTotal > 0 ? (
               <>
-                {/* Bar chart */}
                 <div className="px-[18px] py-3 pb-4">
                   <div className="flex items-end gap-[3px] h-14">
                     {monthClean > 0 && (
                       <div
                         className="rounded-t-sm"
-                        style={{ flex: monthClean, height: "100%", background: "rgba(74,222,128,0.25)", border: "1px solid rgba(74,222,128,0.2)" }}
+                        style={{ flex: monthClean, height: "100%", background: "#d1fae5", border: "1px solid #a7f3d0" }}
                       />
                     )}
                     {monthWarnings > 0 && (
                       <div
                         className="rounded-t-sm"
-                        style={{ flex: monthWarnings, height: "100%", background: "rgba(45,212,191,0.25)", border: "1px solid rgba(45,212,191,0.2)" }}
+                        style={{ flex: monthWarnings, height: "100%", background: "#fef3c7", border: "1px solid #fde68a" }}
                       />
                     )}
                     {monthViolations > 0 && (
                       <div
                         className="rounded-t-sm"
-                        style={{ flex: monthViolations, height: "100%", background: "rgba(248,113,113,0.25)", border: "1px solid rgba(248,113,113,0.2)" }}
+                        style={{ flex: monthViolations, height: "100%", background: "#fee2e2", border: "1px solid #fecaca" }}
                       />
                     )}
                   </div>
                 </div>
 
-                {/* Score labels */}
                 <div className="grid grid-cols-3 gap-2 px-4 pb-4 text-center">
-                  <div className="p-2 bg-[#0f1520] rounded-md">
-                    <div className="text-base font-extrabold text-[#f87171] mb-0.5">{monthViolations}</div>
-                    <div className="text-[10px] text-[#3a4d66]">Violations</div>
+                  <div className="p-2 bg-red-50 rounded-md">
+                    <div className="text-base font-extrabold text-red-500 mb-0.5">{monthViolations}</div>
+                    <div className="text-[10px] text-slate-500">Violations</div>
                   </div>
-                  <div className="p-2 bg-[#0f1520] rounded-md">
-                    <div className="text-base font-extrabold text-[#2dd4bf] mb-0.5">{monthWarnings}</div>
-                    <div className="text-[10px] text-[#3a4d66]">Warnings</div>
+                  <div className="p-2 bg-amber-50 rounded-md">
+                    <div className="text-base font-extrabold text-amber-500 mb-0.5">{monthWarnings}</div>
+                    <div className="text-[10px] text-slate-500">Warnings</div>
                   </div>
-                  <div className="p-2 bg-[#0f1520] rounded-md">
-                    <div className="text-base font-extrabold text-[#4ade80] mb-0.5">{monthClean}</div>
-                    <div className="text-[10px] text-[#3a4d66]">Clean</div>
+                  <div className="p-2 bg-emerald-50 rounded-md">
+                    <div className="text-base font-extrabold text-emerald-500 mb-0.5">{monthClean}</div>
+                    <div className="text-[10px] text-slate-500">Clean</div>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="py-8 px-[18px] text-center text-xs text-[#3a4d66]">
+              <div className="py-8 px-[18px] text-center text-xs text-slate-400">
                 No checks this month yet.
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Featured Learning Resources ── */}
+        {/* Featured Learning Resources */}
         {featuredArticles.length > 0 && (
           <div className="mt-5">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[13px] font-bold text-white">Featured Learning Resources</span>
-              <Link href="/app/learn" className="text-[11px] text-[#2dd4bf] no-underline hover:opacity-80">
+              <span className="text-[13px] font-bold text-slate-900">Featured Learning Resources</span>
+              <Link href="/app/learn" className="text-[11px] text-teal-600 no-underline hover:text-teal-700">
                 View all &rarr;
               </Link>
             </div>
@@ -259,23 +257,23 @@ export default async function DashboardPage() {
                 <Link
                   key={article.id}
                   href={`/app/learn/${article.slug}`}
-                  className="block bg-[#131b28] border border-[#1d2a3a] rounded-[10px] p-4 no-underline hover:border-[rgba(45,212,191,0.3)] hover:bg-[rgba(45,212,191,0.03)] transition-colors"
+                  className="block bg-white border border-slate-200 rounded-xl p-4 no-underline shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
                 >
-                  <h3 className="text-xs font-bold text-white mb-1.5 line-clamp-2">{article.title}</h3>
-                  <p className="text-[11px] text-[#7d93b2] leading-relaxed mb-3 line-clamp-2">{article.summary}</p>
+                  <h3 className="text-xs font-bold text-slate-900 mb-1.5 line-clamp-2">{article.title}</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed mb-3 line-clamp-2">{article.summary}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {article.platform && (
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[rgba(45,212,191,0.08)] text-[#2dd4bf] border border-[rgba(45,212,191,0.15)]">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-teal-50 text-teal-600 border border-teal-200">
                         {article.platform.name}
                       </span>
                     )}
                     {article.category && (
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[rgba(96,165,250,0.08)] text-[#60a5fa] border border-[rgba(96,165,250,0.15)]">
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 border border-blue-200">
                         {article.category.name}
                       </span>
                     )}
                     {article.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#18222f] text-[#3a4d66]">
+                      <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
                         {tag}
                       </span>
                     ))}

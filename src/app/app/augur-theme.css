@@ -190,8 +190,8 @@
 .aug-main {
   margin-left: 220px;
   min-height: 100vh;
-  background: var(--aug-s1) !important;
-  color: var(--aug-text);
+  background: #f3f5f8 !important;
+  color: #1a202c;
   max-width: none !important;
   padding: 0 !important;
 }
@@ -570,7 +570,7 @@
 
   .aug-main {
     margin-left: 0;
-    padding-top: 56px;
+    padding-top: 56px !important;
   }
 
   .aug-dash-grid {
