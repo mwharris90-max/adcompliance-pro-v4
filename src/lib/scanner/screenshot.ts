@@ -41,14 +41,14 @@ export async function captureScreenshot(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     );
 
-    // Navigate and wait for the page to settle
+    // Navigate — domcontentloaded is faster than networkidle2
     await page.goto(url, {
-      waitUntil: "networkidle2",
+      waitUntil: "domcontentloaded",
       timeout: 20000,
     });
 
-    // Wait a bit for any lazy-loaded content
-    await page.evaluate(() => new Promise((r) => setTimeout(r, 1500)));
+    // Brief pause for above-the-fold images to render
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 500)));
 
     // -- Clean screenshot --
     const cleanBuffer = await page.screenshot({

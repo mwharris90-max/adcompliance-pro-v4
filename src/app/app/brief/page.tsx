@@ -34,6 +34,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CategoryIcon, getCategoryColor } from "@/components/category-icon";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -544,6 +545,7 @@ function CategoryPicker({
                           </svg>
                         )}
                       </div>
+                      <CategoryIcon name={group.parent.name} className={cn("h-4 w-4", getCategoryColor(group.parent.name))} />
                       {group.parent.name}
                       <span className="text-xs text-slate-400 ml-auto">
                         {childCount}
@@ -590,6 +592,7 @@ function CategoryPicker({
                                   </svg>
                                 )}
                               </div>
+                              <CategoryIcon name={sg.parent.name} className={cn("h-3.5 w-3.5", getCategoryColor(sg.parent.name))} />
                               {sg.parent.name}
                               <span className="text-xs text-slate-400 ml-auto">
                                 {sg.leaves.length}
@@ -625,6 +628,7 @@ function CategoryPicker({
                                         </svg>
                                       )}
                                     </div>
+                                    <CategoryIcon name={leaf.name} className={cn("h-3.5 w-3.5", getCategoryColor(leaf.name))} />
                                     {leaf.name}
                                   </button>
                                 );
@@ -663,6 +667,7 @@ function CategoryPicker({
                                 </svg>
                               )}
                             </div>
+                            <CategoryIcon name={child.name} className={cn("h-3.5 w-3.5", getCategoryColor(child.name))} />
                             {child.name}
                           </button>
                         );
@@ -714,6 +719,7 @@ function CategoryPicker({
                         </svg>
                       )}
                     </div>
+                    <CategoryIcon name={item.name} className={cn("h-4 w-4", getCategoryColor(item.name))} />
                     {item.name}
                   </button>
                 );
@@ -1324,8 +1330,8 @@ export default function BriefPage() {
               {/* ── Category-Specific Sections ── */}
               {guidance.categorySpecific.map((catSection, ci) => (
                 <div key={ci} className="space-y-4">
-                  <div className="flex items-center gap-2 border-l-4 border-[#1A56DB] pl-3 py-1">
-                    <Tag className="h-5 w-5 text-[#1A56DB]" />
+                  <div className="flex items-center gap-3 border-l-4 border-[#1A56DB] pl-3 py-1">
+                    <CategoryIcon name={catSection.category} className={cn("h-5 w-5", getCategoryColor(catSection.category))} />
                     <div>
                       <h3 className="text-base font-semibold text-slate-900">
                         {catSection.category}
