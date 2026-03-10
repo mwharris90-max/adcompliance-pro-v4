@@ -290,6 +290,7 @@ export interface ScanReportPdfInput {
     overallScore: "compliant" | "needs_attention" | "non_compliant";
     findings: ScanFinding[];
   };
+  screenshotUrl?: string | null;
 }
 
 // ── Category labels ─────────────────────────────────────────────────────────
@@ -485,6 +486,21 @@ function ScanReportDocument({ input }: { input: ScanReportPdfInput }) {
             </View>
           ))}
         </View>
+
+        {/* Screenshot */}
+        {input.screenshotUrl && (
+          <View style={{ marginTop: 16 }} break>
+            <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.slate900, marginBottom: 8 }}>
+              Page Screenshot
+            </Text>
+            <View style={{ border: `1pt solid ${C.slate200}`, borderRadius: 4, overflow: "hidden" }}>
+              <Image src={input.screenshotUrl} style={{ width: "100%" }} />
+            </View>
+            <Text style={{ fontSize: 7, color: C.slate400, marginTop: 4 }}>
+              Screenshot captured at time of scan — {input.url}
+            </Text>
+          </View>
+        )}
 
         {/* Footer */}
         <View style={s.footer} fixed>

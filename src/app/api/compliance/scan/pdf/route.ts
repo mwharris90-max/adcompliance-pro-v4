@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       platformIds,
       categoryIds,
       countryIds,
+      screenshotUrl,
     } = body as {
       scan: {
         url: string;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       platformIds: string[];
       categoryIds: string[];
       countryIds: string[];
+      screenshotUrl?: string | null;
     };
 
     if (!scan || !report) {
@@ -96,6 +98,7 @@ export async function POST(req: NextRequest) {
       categories: categories.map((c) => c.name),
       countries: countries.map((c) => c.name),
       report,
+      screenshotUrl: screenshotUrl ?? null,
     });
 
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");

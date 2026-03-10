@@ -282,9 +282,9 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
           screenshotUrl = await new Promise<string>((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
               { folder, public_id: publicId, resource_type: "image", format: "png", overwrite: true },
-              (err, result) => {
+              (err, uploadResult) => {
                 if (err) reject(err);
-                else resolve(result!.secure_url);
+                else resolve(uploadResult!.secure_url);
               }
             );
             stream.end(clean);

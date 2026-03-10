@@ -498,6 +498,7 @@ export default function SiteScannerPage() {
           platformIds: selectedPlatforms,
           categoryIds: selectedCategories,
           countryIds: selectedCountries,
+          screenshotUrl,
         }),
       });
       if (!res.ok) {
