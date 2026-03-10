@@ -27,6 +27,7 @@ import {
   Image as ImageIcon,
   Scan,
   Download,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -425,6 +426,9 @@ export default function SiteScannerPage() {
   const [scanning, setScanning] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
+  const [screenshots, setScreenshots] = useState<{ clean: string; annotated: string } | null>(null);
+  const [showAnnotated, setShowAnnotated] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -449,6 +453,7 @@ export default function SiteScannerPage() {
 
     setScanning(true);
     setResult(null);
+    setScreenshots(null);
 
     try {
       const res = await fetch("/api/compliance/scan", {
@@ -512,6 +517,33 @@ export default function SiteScannerPage() {
       toast.error("Failed to download PDF");
     } finally {
       setDownloadingPdf(false);
+    }
+  };
+
+  const captureScreenshot = async () => {
+    if (!result) return;
+    setCapturingScreenshot(true);
+    try {
+      const res = await fetch("/api/compliance/scan/screenshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: result.scan.url,
+          findings: result.report.findings,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error || "Screenshot capture failed");
+        return;
+      }
+      const data = await res.json();
+      setScreenshots(data.screenshots);
+      toast.success("Screenshot captured");
+    } catch {
+      toast.error("Screenshot capture failed");
+    } finally {
+      setCapturingScreenshot(false);
     }
   };
 
@@ -649,20 +681,38 @@ export default function SiteScannerPage() {
                 {result.scan.url}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={downloadPdf}
-              disabled={downloadingPdf}
-              className="gap-1.5"
-            >
-              {downloadingPdf ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-2">
+              {!screenshots && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={captureScreenshot}
+                  disabled={capturingScreenshot}
+                  className="gap-1.5"
+                >
+                  {capturingScreenshot ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                  {capturingScreenshot ? "Capturing..." : "Capture Screenshot"}
+                </Button>
               )}
-              Download PDF
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={downloadPdf}
+                disabled={downloadingPdf}
+                className="gap-1.5"
+              >
+                {downloadingPdf ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                Download PDF
+              </Button>
+            </div>
           </div>
 
           {/* Overall verdict */}
@@ -743,6 +793,78 @@ export default function SiteScannerPage() {
               </Badge>
             )}
           </div>
+
+          {/* Screenshots */}
+          {capturingScreenshot && !screenshots && (
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="py-10 text-center">
+                <Camera className="h-8 w-8 text-[#1A56DB] mx-auto mb-3 animate-pulse" />
+                <h3 className="font-semibold text-slate-900 mb-1">Capturing screenshot...</h3>
+                <p className="text-sm text-slate-500">
+                  Loading the page in a headless browser and annotating compliance issues.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {screenshots && (
+            <Card className="border-slate-200 shadow-sm overflow-hidden">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Page Screenshot</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAnnotated(false)}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-md transition-colors",
+                        !showAnnotated
+                          ? "bg-[#1A56DB] text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      Clean
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAnnotated(true)}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-md transition-colors",
+                        showAnnotated
+                          ? "bg-[#1A56DB] text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      Annotated
+                    </button>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                  <img
+                    src={showAnnotated ? screenshots.annotated : screenshots.clean}
+                    alt={showAnnotated ? "Annotated page screenshot" : "Clean page screenshot"}
+                    className="w-full h-auto"
+                  />
+                </div>
+                {showAnnotated && (
+                  <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-red-500 bg-red-500/15" />
+                      Fail
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-amber-500 bg-amber-500/15" />
+                      Warning
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-green-500 bg-green-500/15" />
+                      Pass
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Findings by category */}
           {findingsByCategory.map(([cat, findings]) => {
