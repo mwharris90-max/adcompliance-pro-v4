@@ -44,16 +44,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ suggestions: [] });
     }
 
-    // Fetch all active categories
+    // Fetch all active categories with parent info
     const categories = await db.category.findMany({
       where: { active: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, parentId: true },
       orderBy: { name: "asc" },
     });
 
     if (!categories.length) {
       return NextResponse.json({ suggestions: [] });
     }
+
+    // Build a map of parent IDs so we can identify leaf vs parent categories
+    const parentIds = new Set(
+      categories.filter((c) => c.parentId).map((c) => c.parentId!)
+    );
+
+    // Format categories with hierarchy info for the prompt
+    const categoryList = categories.map((c) => {
+      const isParent = parentIds.has(c.id);
+      const parent = c.parentId
+        ? categories.find((p) => p.id === c.parentId)
+        : null;
+      const label = parent ? `${parent.name} > ${c.name}` : c.name;
+      const tag = isParent ? " [PARENT - avoid]" : "";
+      return `- ID: ${c.id} | ${label}${tag}`;
+    }).join("\n");
 
     const client = new Anthropic({ apiKey });
 
@@ -95,14 +111,19 @@ export async function POST(req: NextRequest) {
           role: "user",
           content: `Given this website content, suggest the most relevant advertising compliance categories. This is a landing page or website that may be used for advertising — identify which regulated or standard industry categories apply.
 
-IMPORTANT RULES:
-- Suggest the most SPECIFIC category available. E.g. "Pet Insurance" not just "Insurance Products".
+CRITICAL RULES:
+- ALWAYS prefer specific sub-categories over broad parent categories. For example:
+  - Use "Pet Insurance" NOT "Insurance Products"
+  - Use "Skincare (Non-Medical)" NOT "Beauty & Personal Care — General"
+  - Use "Online Gambling / Casino" NOT "Financial Services — General"
+  - Use "Beer" or "Wine" NOT "Alcohol — General"
+- Categories marked [PARENT - avoid] should ONLY be used if no specific sub-category fits. They are too broad for compliance analysis.
 - Only suggest restricted/prohibited categories if the page is directly offering or promoting that product/service.
-- If the page spans multiple categories (e.g. a financial services company offering loans and insurance), suggest all relevant ones.
+- If the page spans multiple specific categories, suggest all relevant ones.
 - Suggest up to 5 categories maximum, ordered by relevance.
 
 Available categories:
-${categories.map((c) => `- ID: ${c.id} | Name: ${c.name}`).join("\n")}
+${categoryList}
 
 Website content:
 ${text}`,
