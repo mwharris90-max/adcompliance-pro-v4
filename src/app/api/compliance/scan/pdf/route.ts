@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       categoryIds,
       countryIds,
       screenshotUrl,
+      annotatedScreenshotUrl,
     } = body as {
       scan: {
         url: string;
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       categoryIds: string[];
       countryIds: string[];
       screenshotUrl?: string | null;
+      annotatedScreenshotUrl?: string | null;
     };
 
     if (!scan || !report) {
@@ -99,6 +101,7 @@ export async function POST(req: NextRequest) {
       countries: countries.map((c) => c.name),
       report,
       screenshotUrl: screenshotUrl ?? null,
+      annotatedScreenshotUrl: annotatedScreenshotUrl ?? null,
     });
 
     const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");

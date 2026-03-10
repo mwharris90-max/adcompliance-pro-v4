@@ -427,6 +427,8 @@ export default function SiteScannerPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [annotatedScreenshotUrl, setAnnotatedScreenshotUrl] = useState<string | null>(null);
+  const [showAnnotated, setShowAnnotated] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -452,6 +454,7 @@ export default function SiteScannerPage() {
     setScanning(true);
     setResult(null);
     setScreenshotUrl(null);
+    setAnnotatedScreenshotUrl(null);
 
     try {
       const res = await fetch("/api/compliance/scan", {
@@ -477,6 +480,9 @@ export default function SiteScannerPage() {
       if (data.screenshotUrl) {
         setScreenshotUrl(data.screenshotUrl);
       }
+      if (data.annotatedScreenshotUrl) {
+        setAnnotatedScreenshotUrl(data.annotatedScreenshotUrl);
+      }
       toast.success("Scan complete");
     } catch {
       toast.error("Scan failed");
@@ -499,6 +505,7 @@ export default function SiteScannerPage() {
           categoryIds: selectedCategories,
           countryIds: selectedCountries,
           screenshotUrl,
+          annotatedScreenshotUrl,
         }),
       });
       if (!res.ok) {
@@ -794,14 +801,60 @@ export default function SiteScannerPage() {
           {screenshotUrl && (
             <Card className="border-slate-200 shadow-sm overflow-hidden">
               <CardContent className="pt-4 pb-4">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">Page Screenshot</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Compliance Visual</h3>
+                  {annotatedScreenshotUrl && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowAnnotated(false)}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-md transition-colors",
+                          !showAnnotated
+                            ? "bg-[#1A56DB] text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        Clean
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAnnotated(true)}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-md transition-colors",
+                          showAnnotated
+                            ? "bg-[#1A56DB] text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        Annotated
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
                   <img
-                    src={screenshotUrl}
-                    alt="Page screenshot"
+                    src={showAnnotated && annotatedScreenshotUrl ? annotatedScreenshotUrl : screenshotUrl}
+                    alt={showAnnotated && annotatedScreenshotUrl ? "Annotated compliance visual" : "Page screenshot"}
                     className="w-full h-auto"
                   />
                 </div>
+                {showAnnotated && annotatedScreenshotUrl && (
+                  <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-red-500 bg-red-500/15" />
+                      Fail
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-amber-500 bg-amber-500/15" />
+                      Warning
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="inline-block w-3 h-3 rounded border-2 border-green-500 bg-green-500/15" />
+                      Pass
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

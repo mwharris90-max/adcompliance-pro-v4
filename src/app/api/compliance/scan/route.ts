@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import { extractPage, type PageExtraction } from "@/lib/scanner/extract";
-import { captureScreenshot } from "@/lib/scanner/screenshot";
+import { captureScreenshot, buildAnnotations } from "@/lib/scanner/screenshot";
 import { deductCredits } from "@/lib/usage";
 import { internalError } from "@/lib/api-error";
 import { v2 as cloudinary } from "cloudinary";
@@ -238,15 +238,17 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
     });
 
     // Parse AI response
-    let report: {
+    type ScanReport = {
       summary: string;
       overallScore: "compliant" | "needs_attention" | "non_compliant";
       findings: ScanFinding[];
-    } | null = null;
+    };
+
+    let report: ScanReport | null = null;
 
     for (const block of response.content) {
       if (block.type === "tool_use" && block.name === "report_findings") {
-        report = block.input as typeof report;
+        report = block.input as ScanReport;
       }
     }
 
@@ -259,11 +261,14 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
 
     // ── 6. Capture screenshot if requested ──
     let screenshotUrl: string | null = null;
-    if (withScreenshot && process.env.APIFLASH_ACCESS_KEY) {
-      try {
-        const { clean } = await captureScreenshot(url);
+    let annotatedScreenshotUrl: string | null = null;
 
-        // Upload to Cloudinary if configured, otherwise skip
+    if (withScreenshot && (process.env.BROWSERLESS_TOKEN || process.env.APIFLASH_ACCESS_KEY)) {
+      try {
+        const annotations = buildAnnotations(report.findings);
+        const { clean, annotated } = await captureScreenshot(url, annotations);
+
+        // Upload to Cloudinary if configured
         if (
           process.env.CLOUDINARY_CLOUD_NAME &&
           process.env.CLOUDINARY_API_KEY &&
@@ -277,18 +282,25 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
 
           const hostname = new URL(url).hostname.replace(/\./g, "-");
           const folder = `scan-screenshots/${session.user.id}`;
-          const publicId = `${hostname}-${Date.now()}`;
+          const ts = Date.now();
 
-          screenshotUrl = await new Promise<string>((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { folder, public_id: publicId, resource_type: "image", format: "png", overwrite: true },
-              (err, uploadResult) => {
-                if (err) reject(err);
-                else resolve(uploadResult!.secure_url);
-              }
-            );
-            stream.end(clean);
-          });
+          const uploadBuffer = (buffer: Buffer, suffix: string): Promise<string> =>
+            new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                { folder, public_id: `${hostname}-${suffix}-${ts}`, resource_type: "image", format: "png", overwrite: true },
+                (err, uploadResult) => {
+                  if (err) reject(err);
+                  else resolve(uploadResult!.secure_url);
+                }
+              );
+              stream.end(buffer);
+            });
+
+          screenshotUrl = await uploadBuffer(clean, "clean");
+
+          if (annotated) {
+            annotatedScreenshotUrl = await uploadBuffer(annotated, "annotated");
+          }
         }
       } catch (screenshotErr) {
         // Screenshot failure is non-fatal — the scan still succeeds
@@ -313,6 +325,7 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
       },
       report,
       screenshotUrl,
+      annotatedScreenshotUrl,
     });
   } catch (err) {
     return internalError(err, "POST /api/compliance/scan");

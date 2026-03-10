@@ -291,6 +291,7 @@ export interface ScanReportPdfInput {
     findings: ScanFinding[];
   };
   screenshotUrl?: string | null;
+  annotatedScreenshotUrl?: string | null;
 }
 
 // ── Category labels ─────────────────────────────────────────────────────────
@@ -487,17 +488,39 @@ function ScanReportDocument({ input }: { input: ScanReportPdfInput }) {
           ))}
         </View>
 
-        {/* Screenshot */}
-        {input.screenshotUrl && (
+        {/* Screenshots */}
+        {(input.screenshotUrl || input.annotatedScreenshotUrl) && (
           <View style={{ marginTop: 16 }} break>
             <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.slate900, marginBottom: 8 }}>
-              Page Screenshot
+              Compliance Visual
             </Text>
-            <View style={{ border: `1pt solid ${C.slate200}`, borderRadius: 4, overflow: "hidden" }}>
-              <Image src={input.screenshotUrl} style={{ width: "100%" }} />
-            </View>
+
+            {input.annotatedScreenshotUrl && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.slate700, marginBottom: 4 }}>
+                  Annotated — compliance issues highlighted
+                </Text>
+                <View style={{ border: `1pt solid ${C.slate200}`, borderRadius: 4, overflow: "hidden" }}>
+                  <Image src={input.annotatedScreenshotUrl} style={{ width: "100%" }} />
+                </View>
+              </View>
+            )}
+
+            {input.screenshotUrl && (
+              <View style={{ marginBottom: 4 }}>
+                {input.annotatedScreenshotUrl && (
+                  <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: C.slate700, marginBottom: 4 }}>
+                    Clean — original page
+                  </Text>
+                )}
+                <View style={{ border: `1pt solid ${C.slate200}`, borderRadius: 4, overflow: "hidden" }}>
+                  <Image src={input.screenshotUrl} style={{ width: "100%" }} />
+                </View>
+              </View>
+            )}
+
             <Text style={{ fontSize: 7, color: C.slate400, marginTop: 4 }}>
-              Screenshot captured at time of scan — {input.url}
+              Screenshots captured at time of scan — {input.url}
             </Text>
           </View>
         )}

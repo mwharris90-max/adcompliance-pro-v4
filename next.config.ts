@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GIT_HASH,
     NEXT_PUBLIC_BUILD_TIME,
   },
-  serverExternalPackages: ["@react-pdf/renderer"],
+  serverExternalPackages: ["@react-pdf/renderer", "puppeteer-core"],
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
