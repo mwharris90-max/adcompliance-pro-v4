@@ -1,0 +1,589 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ── Augur Dark App Theme ── */
+:root {
+  --aug-bg:    #07090d;
+  --aug-s0:    #0b0f16;
+  --aug-s1:    #0f1520;
+  --aug-s2:    #131b28;
+  --aug-s3:    #18222f;
+  --aug-b1:    #1d2a3a;
+  --aug-b2:    #243348;
+  --aug-teal:  #2dd4bf;
+  --aug-teal2: #0e9488;
+  --aug-red:   #f87171;
+  --aug-red2:  #ef4444;
+  --aug-green: #4ade80;
+  --aug-green2:#22c55e;
+  --aug-amber: #f59e0b;
+  --aug-purple:#a78bfa;
+  --aug-blue:  #60a5fa;
+  --aug-text:  #dde5f0;
+  --aug-mid:   #7d93b2;
+  --aug-dim:   #3a4d66;
+  --aug-white: #ffffff;
+}
+
+/* ── App layout ── */
+.aug-app-layout {
+  min-height: 100vh;
+  background: var(--aug-s1) !important;
+  color: var(--aug-text);
+  font-family: 'Figtree', var(--font-geist-sans), sans-serif;
+}
+
+/* ── Sidebar ── */
+.aug-sidebar {
+  background: var(--aug-s0) !important;
+  border-right: 1px solid var(--aug-b1) !important;
+  display: flex !important;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  z-index: 40;
+}
+
+.aug-sidebar-logo {
+  padding: 20px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--aug-b1);
+}
+
+.aug-logo-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.aug-logo-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--aug-white);
+}
+
+/* Nav items */
+.aug-sidebar-nav {
+  padding: 12px 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.aug-nav-item {
+  display: flex !important;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--aug-mid);
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 2px solid transparent !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  margin: 1px 0;
+  text-decoration: none;
+}
+
+.aug-nav-item:hover {
+  color: var(--aug-text);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.aug-nav-item.active {
+  color: var(--aug-white) !important;
+  background: rgba(45, 212, 191, 0.07) !important;
+  border-left-color: var(--aug-teal) !important;
+}
+
+.aug-nav-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.aug-nav-item.active .aug-nav-icon {
+  opacity: 1;
+}
+
+.aug-nav-divider {
+  height: 1px;
+  background: var(--aug-b1);
+  margin: 8px 12px;
+}
+
+/* Sidebar bottom */
+.aug-sidebar-bottom {
+  padding: 16px;
+  border-top: 1px solid var(--aug-b1);
+}
+
+.aug-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--aug-s2);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.aug-user-pill:hover {
+  background: var(--aug-s3);
+}
+
+.aug-user-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.aug-user-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--aug-text);
+}
+
+.aug-user-role {
+  font-size: 10px;
+  color: var(--aug-dim);
+}
+
+.aug-checkdits-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(45, 212, 191, 0.08);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--aug-teal);
+  font-family: 'IBM Plex Mono', monospace;
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.aug-checkdits-pill:hover {
+  background: rgba(45, 212, 191, 0.12);
+}
+
+/* ── Main content area ── */
+.aug-main {
+  margin-left: 220px;
+  min-height: 100vh;
+  background: var(--aug-s1) !important;
+  color: var(--aug-text);
+  max-width: none !important;
+  padding: 0 !important;
+}
+
+/* ── Top bar ── */
+.aug-topbar {
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--aug-b1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--aug-s1);
+}
+
+.aug-topbar-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.aug-topbar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--aug-white);
+  white-space: nowrap;
+}
+
+.aug-topbar-sub {
+  font-size: 11px;
+  color: var(--aug-dim);
+  margin-top: 1px;
+  white-space: nowrap;
+}
+
+.aug-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Buttons ── */
+.aug-btn {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: 'Figtree', sans-serif;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+
+.aug-btn:hover {
+  opacity: 0.85;
+}
+
+.aug-btn-ghost {
+  background: transparent !important;
+  color: var(--aug-mid) !important;
+  border: 1px solid var(--aug-b2) !important;
+}
+
+.aug-btn-teal {
+  background: var(--aug-teal) !important;
+  color: #021c1a !important;
+}
+
+/* ── Dashboard ── */
+.aug-dash-body {
+  padding: 24px 28px;
+}
+
+.aug-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.aug-dcard {
+  background: var(--aug-s2) !important;
+  border: 1px solid var(--aug-b1) !important;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.aug-dcard-label {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--aug-dim);
+  margin-bottom: 8px;
+}
+
+.aug-dcard-val {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--aug-white);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.aug-dcard-trend {
+  font-size: 12px;
+}
+
+.aug-dcard-trend.up {
+  color: var(--aug-green);
+}
+
+.aug-dcard-trend.down {
+  color: var(--aug-red);
+}
+
+.aug-dcard-trend.neutral {
+  color: var(--aug-dim);
+}
+
+.aug-dcard.highlight {
+  border-color: rgba(45, 212, 191, 0.2) !important;
+  background: rgba(45, 212, 191, 0.04) !important;
+}
+
+.aug-dcard.highlight .aug-dcard-val {
+  color: var(--aug-teal);
+}
+
+.aug-dcard-bar {
+  margin-top: 12px;
+  height: 3px;
+  background: var(--aug-s3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.aug-dcard-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--aug-teal);
+}
+
+/* ── Lower panels ── */
+.aug-dash-lower {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.aug-dash-panel {
+  background: var(--aug-s2);
+  border: 1px solid var(--aug-b1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.aug-dp-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--aug-b1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aug-dp-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--aug-white);
+}
+
+.aug-dp-action {
+  font-size: 11px;
+  color: var(--aug-teal);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.aug-dp-action:hover {
+  opacity: 0.8;
+}
+
+.aug-dp-body {
+  padding: 4px 0;
+}
+
+/* Recent check rows */
+.aug-recent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(29, 42, 58, 0.5);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.aug-recent-row:last-child {
+  border-bottom: none;
+}
+
+.aug-recent-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.aug-rr-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: 'IBM Plex Mono', monospace;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+
+.aug-rr-badge.v {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--aug-red);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.aug-rr-badge.p {
+  background: rgba(74, 222, 128, 0.08);
+  color: var(--aug-green);
+  border: 1px solid rgba(74, 222, 128, 0.18);
+}
+
+.aug-rr-badge.w {
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--aug-teal);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+}
+
+.aug-rr-badge.e {
+  background: rgba(125, 147, 178, 0.1);
+  color: var(--aug-mid);
+  border: 1px solid rgba(125, 147, 178, 0.18);
+}
+
+.aug-rr-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aug-rr-name {
+  font-size: 12px;
+  color: var(--aug-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aug-rr-meta {
+  font-size: 10px;
+  color: var(--aug-dim);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.aug-rr-time {
+  font-size: 10px;
+  color: var(--aug-dim);
+  font-family: 'IBM Plex Mono', monospace;
+  flex-shrink: 0;
+}
+
+/* Mini chart */
+.aug-mini-chart {
+  padding: 12px 18px 16px;
+}
+
+.aug-mc-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.aug-mc-label {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--aug-dim);
+}
+
+.aug-mc-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 56px;
+}
+
+.aug-mc-bar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  min-height: 3px;
+  background: rgba(45, 212, 191, 0.25);
+  border: 1px solid rgba(45, 212, 191, 0.2);
+}
+
+/* Score labels */
+.aug-score-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+  padding: 0 16px 16px;
+}
+
+.aug-sl-item {
+  padding: 8px;
+  background: var(--aug-s1);
+  border-radius: 6px;
+}
+
+.aug-sl-num {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.aug-sl-label {
+  font-size: 10px;
+  color: var(--aug-dim);
+}
+
+/* ── Mobile sidebar ── */
+.aug-mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--aug-s2);
+  border: 1px solid var(--aug-b1);
+  color: var(--aug-mid);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.aug-mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 35;
+}
+
+@media (max-width: 768px) {
+  .aug-app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .aug-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .aug-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .aug-mobile-toggle {
+    display: flex;
+  }
+
+  .aug-mobile-overlay.open {
+    display: block;
+  }
+
+  .aug-main {
+    margin-left: 0;
+    padding-top: 56px;
+  }
+
+  .aug-dash-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .aug-dash-lower {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Radar spin animation ── */
+@keyframes augRadarSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { AppNav } from "@/components/app-nav";
+import { AppSidebar } from "@/components/app-sidebar";
+import "./augur-theme.css";
 
 export default async function AppLayout({
   children,
@@ -11,11 +12,9 @@ export default async function AppLayout({
   if (!session) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-[#F5F7FF]">
-      <AppNav user={session.user} />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
+    <div className="aug-app-layout">
+      <AppSidebar user={session.user} />
+      <main className="aug-main">{children}</main>
     </div>
   );
 }

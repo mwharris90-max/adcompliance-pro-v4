@@ -25,6 +25,7 @@ const articleSchema = z.object({
   tags: z.array(z.string()).default([]),
   sortOrder: z.number().default(0),
   published: z.boolean().default(true),
+  featured: z.boolean().default(false),
 });
 
 /**
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
       tags: data.tags,
       sortOrder: data.sortOrder,
       published: data.published,
+      featured: data.featured,
       createdById: session.user.id,
     },
   });

@@ -795,6 +795,7 @@ model PolicyArticle {
   tags          String[] // e.g. ["alcohol", "gambling", "age-gate", "disclaimer"]
   sortOrder     Int      @default(0)
   published     Boolean  @default(true)
+  featured      Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   createdById   String?

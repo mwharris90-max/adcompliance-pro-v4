@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AdCompliance Pro",
-  description: "Advertising compliance checking for digital marketing agencies",
+  title: "Augur — Ad Compliance Intelligence for Agencies & SaaS",
+  description:
+    "AI-powered ad compliance checking for Google Ads, Meta, and Instagram. Built for SaaS teams and digital agencies running campaigns at scale across multiple clients and geographies.",
 };
 
 export default function RootLayout({

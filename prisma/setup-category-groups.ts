@@ -51,6 +51,9 @@ const CHILD_TO_PARENT: Record<string, string[]> = {
   "group-financial-services": [
     "financial-services-general", "loans-credit", "payday-loans", "debt-relief",
     "cryptocurrency-nfts", "investment-trading", "insurance",
+    "insurance-pet", "insurance-life", "insurance-travel",
+    "insurance-home", "insurance-auto", "insurance-health",
+    "insurance-business", "insurance-cyber",
   ],
   "group-gambling-betting": [
     "online-gambling", "sports-betting", "lotteries-sweepstakes", "fantasy-sports",

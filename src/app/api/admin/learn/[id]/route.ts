@@ -25,6 +25,7 @@ const updateSchema = z.object({
   tags: z.array(z.string()).optional(),
   sortOrder: z.number().optional(),
   published: z.boolean().optional(),
+  featured: z.boolean().optional(),
 });
 
 /**
@@ -67,6 +68,7 @@ export async function PATCH(
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
       ...(data.published !== undefined && { published: data.published }),
+      ...(data.featured !== undefined && { featured: data.featured }),
     },
   });
 

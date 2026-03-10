@@ -71,6 +71,7 @@ interface Article {
   tags: string[];
   sortOrder: number;
   published: boolean;
+  featured: boolean;
   platform: { name: string } | null;
   category: { name: string } | null;
   country: { name: string } | null;
@@ -248,6 +249,7 @@ function ArticlesTab({
       tags: a.tags.join(", "),
       sortOrder: a.sortOrder,
       published: a.published,
+      featured: a.featured,
     });
     setError(null);
     setSheetOpen(true);
@@ -271,6 +273,7 @@ function ArticlesTab({
         .filter(Boolean),
       sortOrder: form.sortOrder,
       published: form.published,
+      featured: form.featured,
     };
   }
 
@@ -321,6 +324,15 @@ function ArticlesTab({
     fetchArticles();
   }
 
+  async function toggleFeatured(a: Article) {
+    await fetch(`/api/admin/learn/${a.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ featured: !a.featured }),
+    });
+    fetchArticles();
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return;
     await fetch(`/api/admin/learn/${deleteTarget.id}`, { method: "DELETE" });
@@ -353,19 +365,20 @@ function ArticlesTab({
               <TableHead>Tags</TableHead>
               <TableHead>Order</TableHead>
               <TableHead>Published</TableHead>
+              <TableHead>Featured</TableHead>
               <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={7} className="text-center py-8">
                   <Loader2 className="h-5 w-5 animate-spin inline-block text-slate-400" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                   No articles found.
                 </TableCell>
               </TableRow>
@@ -401,6 +414,9 @@ function ArticlesTab({
                   <TableCell className="text-xs font-mono">{a.sortOrder}</TableCell>
                   <TableCell data-noedit>
                     <Switch checked={a.published} onCheckedChange={() => togglePublished(a)} />
+                  </TableCell>
+                  <TableCell data-noedit>
+                    <Switch checked={a.featured} onCheckedChange={() => toggleFeatured(a)} />
                   </TableCell>
                   <TableCell data-noedit className="text-right">
                     <Button
@@ -489,6 +505,7 @@ function emptyArticleForm() {
     tags: "",
     sortOrder: 0,
     published: true,
+    featured: false,
   };
 }
 
@@ -655,9 +672,15 @@ function ArticleForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Switch checked={form.published} onCheckedChange={(v) => setForm((f) => ({ ...f, published: v }))} />
-        <Label className="text-sm">Published</Label>
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
+          <Switch checked={form.published} onCheckedChange={(v) => setForm((f) => ({ ...f, published: v }))} />
+          <Label className="text-sm">Published</Label>
+        </div>
+        <div className="flex items-center gap-3">
+          <Switch checked={form.featured} onCheckedChange={(v) => setForm((f) => ({ ...f, featured: v }))} />
+          <Label className="text-sm">Featured on Dashboard</Label>
+        </div>
       </div>
     </div>
   );
@@ -826,7 +849,7 @@ function QuizzesTab({
               </TableRow>
             ) : quizzes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                   No quizzes yet. Create one to test user knowledge.
                 </TableCell>
               </TableRow>

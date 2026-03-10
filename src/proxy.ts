@@ -21,6 +21,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/app/dashboard", req.url));
   }
 
+  // Allow the landing page to render for unauthenticated users
+  if (!isLoggedIn && pathname === "/") {
+    return NextResponse.next();
+  }
+
   // Redirect unauthenticated users to login
   if (!isLoggedIn && (isAppRoute || isAdminRoute)) {
     const loginUrl = new URL("/login", req.url);
