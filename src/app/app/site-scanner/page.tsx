@@ -427,8 +427,7 @@ export default function SiteScannerPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [capturingScreenshot, setCapturingScreenshot] = useState(false);
-  const [screenshots, setScreenshots] = useState<{ clean: string; annotated: string } | null>(null);
-  const [showAnnotated, setShowAnnotated] = useState(true);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -453,7 +452,7 @@ export default function SiteScannerPage() {
 
     setScanning(true);
     setResult(null);
-    setScreenshots(null);
+    setScreenshotUrl(null);
 
     try {
       const res = await fetch("/api/compliance/scan", {
@@ -520,17 +519,14 @@ export default function SiteScannerPage() {
     }
   };
 
-  const captureScreenshot = async () => {
+  const captureScreenshotFn = async () => {
     if (!result) return;
     setCapturingScreenshot(true);
     try {
       const res = await fetch("/api/compliance/scan/screenshot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: result.scan.url,
-          findings: result.report.findings,
-        }),
+        body: JSON.stringify({ url: result.scan.url }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -538,7 +534,7 @@ export default function SiteScannerPage() {
         return;
       }
       const data = await res.json();
-      setScreenshots(data.screenshots);
+      setScreenshotUrl(data.screenshots.clean);
       toast.success("Screenshot captured");
     } catch {
       toast.error("Screenshot capture failed");
@@ -682,11 +678,11 @@ export default function SiteScannerPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {!screenshots && (
+              {!screenshotUrl && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={captureScreenshot}
+                  onClick={captureScreenshotFn}
                   disabled={capturingScreenshot}
                   className="gap-1.5"
                 >
@@ -794,74 +790,30 @@ export default function SiteScannerPage() {
             )}
           </div>
 
-          {/* Screenshots */}
-          {capturingScreenshot && !screenshots && (
+          {/* Screenshot */}
+          {capturingScreenshot && !screenshotUrl && (
             <Card className="border-slate-200 shadow-sm">
               <CardContent className="py-10 text-center">
                 <Camera className="h-8 w-8 text-[#1A56DB] mx-auto mb-3 animate-pulse" />
                 <h3 className="font-semibold text-slate-900 mb-1">Capturing screenshot...</h3>
                 <p className="text-sm text-slate-500">
-                  Loading the page in a headless browser and annotating compliance issues.
+                  Rendering the page and capturing a screenshot.
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {screenshots && (
+          {screenshotUrl && (
             <Card className="border-slate-200 shadow-sm overflow-hidden">
               <CardContent className="pt-4 pb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-slate-900">Page Screenshot</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAnnotated(false)}
-                      className={cn(
-                        "text-xs px-2.5 py-1 rounded-md transition-colors",
-                        !showAnnotated
-                          ? "bg-[#1A56DB] text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      )}
-                    >
-                      Clean
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAnnotated(true)}
-                      className={cn(
-                        "text-xs px-2.5 py-1 rounded-md transition-colors",
-                        showAnnotated
-                          ? "bg-[#1A56DB] text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      )}
-                    >
-                      Annotated
-                    </button>
-                  </div>
-                </div>
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Page Screenshot</h3>
                 <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
                   <img
-                    src={showAnnotated ? screenshots.annotated : screenshots.clean}
-                    alt={showAnnotated ? "Annotated page screenshot" : "Clean page screenshot"}
+                    src={screenshotUrl}
+                    alt="Page screenshot"
                     className="w-full h-auto"
                   />
                 </div>
-                {showAnnotated && (
-                  <div className="mt-2 flex items-center gap-4 text-[11px] text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded border-2 border-red-500 bg-red-500/15" />
-                      Fail
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded border-2 border-amber-500 bg-amber-500/15" />
-                      Warning
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="inline-block w-3 h-3 rounded border-2 border-green-500 bg-green-500/15" />
-                      Pass
-                    </span>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}

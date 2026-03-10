@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { v2 as cloudinary } from "cloudinary";
-import { captureScreenshot, buildAnnotations } from "@/lib/scanner/screenshot";
+import { captureScreenshot } from "@/lib/scanner/screenshot";
 import { internalError } from "@/lib/api-error";
 
 export const maxDuration = 60;
@@ -37,62 +37,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Check Cloudinary is configured
+  // Check required services are configured
+  if (!process.env.APIFLASH_ACCESS_KEY) {
+    return NextResponse.json(
+      { error: "Screenshot service not configured. APIFLASH_ACCESS_KEY is missing." },
+      { status: 503 }
+    );
+  }
+
   if (
     !process.env.CLOUDINARY_CLOUD_NAME ||
     !process.env.CLOUDINARY_API_KEY ||
     !process.env.CLOUDINARY_API_SECRET
   ) {
     return NextResponse.json(
-      { error: "Screenshot service not configured" },
+      { error: "Image storage not configured." },
       { status: 503 }
     );
   }
 
   try {
     const body = await req.json();
-    const { url, findings } = body as {
-      url: string;
-      findings: {
-        severity: "pass" | "warning" | "fail";
-        category: string;
-        title: string;
-      }[];
-    };
+    const { url } = body as { url: string };
 
     if (!url?.trim()) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    // Build annotations from findings
-    const annotations = buildAnnotations(findings ?? []);
-
-    // Capture screenshots
-    const { clean, annotated } = await captureScreenshot(url, annotations);
+    // Capture screenshot via ApiFlash
+    const { clean } = await captureScreenshot(url);
 
     // Upload to Cloudinary
     const timestamp = Date.now();
     const hostname = new URL(url).hostname.replace(/\./g, "-");
     const folder = `scan-screenshots/${session.user.id}`;
 
-    const [cleanUrl, annotatedUrl] = await Promise.all([
-      uploadBuffer(clean, folder, `${hostname}-clean-${timestamp}`),
-      uploadBuffer(annotated, folder, `${hostname}-annotated-${timestamp}`),
-    ]);
+    const cleanUrl = await uploadBuffer(clean, folder, `${hostname}-${timestamp}`);
 
     return NextResponse.json({
       success: true,
       screenshots: {
         clean: cleanUrl,
-        annotated: annotatedUrl,
       },
     });
   } catch (err) {
-    // Provide a more helpful error for Chromium issues
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("chromium") || message.includes("browser") || message.includes("launch")) {
+    if (message.includes("APIFLASH") || message.includes("ApiFlash")) {
       return NextResponse.json(
-        { error: "Screenshot capture unavailable. Headless browser failed to launch." },
+        { error: "Screenshot service unavailable. Please try again later." },
         { status: 503 }
       );
     }
