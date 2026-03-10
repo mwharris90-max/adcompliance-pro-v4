@@ -26,6 +26,7 @@ import {
   Eye,
   Image as ImageIcon,
   Scan,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -422,6 +423,7 @@ export default function SiteScannerPage() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   const [scanning, setScanning] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
 
   useEffect(() => {
@@ -473,6 +475,43 @@ export default function SiteScannerPage() {
       toast.error("Scan failed");
     } finally {
       setScanning(false);
+    }
+  };
+
+  const downloadPdf = async () => {
+    if (!result) return;
+    setDownloadingPdf(true);
+    try {
+      const res = await fetch("/api/compliance/scan/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scan: result.scan,
+          report: result.report,
+          platformIds: selectedPlatforms,
+          categoryIds: selectedCategories,
+          countryIds: selectedCountries,
+        }),
+      });
+      if (!res.ok) {
+        toast.error("Failed to generate PDF");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const hostname = new URL(result.scan.url).hostname.replace(/\./g, "-");
+      a.download = `site-scan-${hostname}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF downloaded");
+    } catch {
+      toast.error("Failed to download PDF");
+    } finally {
+      setDownloadingPdf(false);
     }
   };
 
@@ -602,6 +641,30 @@ export default function SiteScannerPage() {
       {/* Results */}
       {result && (
         <div className="space-y-4">
+          {/* Results header with download */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Scan Results</h2>
+              <p className="text-xs text-slate-400">
+                {result.scan.url}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadPdf}
+              disabled={downloadingPdf}
+              className="gap-1.5"
+            >
+              {downloadingPdf ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              Download PDF
+            </Button>
+          </div>
+
           {/* Overall verdict */}
           <Card className={cn(
             "border shadow-sm",
