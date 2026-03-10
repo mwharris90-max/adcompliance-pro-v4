@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
+import { deductCredits } from "@/lib/usage";
 import { internalError } from "@/lib/api-error";
 
 /**
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "At least one platform and one country required" },
         { status: 400 }
+      );
+    }
+
+    // Deduct checkdits: 1 base + 0.5 per additional category (min 1)
+    const categoryCount = categoryIds?.length ?? 0;
+    const cost = categoryCount <= 1 ? 1 : 1 + Math.ceil((categoryCount - 1) * 0.5);
+    const charged = await deductCredits(session.user.id!, cost);
+    if (!charged) {
+      return NextResponse.json(
+        { error: "Insufficient checkdits. Purchase more to continue." },
+        { status: 402 }
       );
     }
 

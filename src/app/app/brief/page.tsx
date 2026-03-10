@@ -1167,14 +1167,22 @@ export default function BriefPage() {
           </div>
 
           <div className="flex items-center justify-between pt-2">
-            <p className="text-xs text-slate-400">
-              {selectedPlatforms.length} platform
-              {selectedPlatforms.length !== 1 ? "s" : ""},{" "}
-              {selectedCategories.length} categor
-              {selectedCategories.length !== 1 ? "ies" : "y"},{" "}
-              {selectedCountries.length} countr
-              {selectedCountries.length !== 1 ? "ies" : "y"} selected
-            </p>
+            <div className="space-y-0.5">
+              <p className="text-xs text-slate-400">
+                {selectedPlatforms.length} platform
+                {selectedPlatforms.length !== 1 ? "s" : ""},{" "}
+                {selectedCategories.length} categor
+                {selectedCategories.length !== 1 ? "ies" : "y"},{" "}
+                {selectedCountries.length} countr
+                {selectedCountries.length !== 1 ? "ies" : "y"} selected
+              </p>
+              <p className="text-xs font-medium text-[#1A56DB]">
+                Cost: {selectedCategories.length <= 1
+                  ? "1"
+                  : 1 + Math.ceil((selectedCategories.length - 1) * 0.5)}{" "}
+                Checkdit{(selectedCategories.length <= 1 ? 1 : 1 + Math.ceil((selectedCategories.length - 1) * 0.5)) !== 1 ? "s" : ""}
+              </p>
+            </div>
             <Button
               onClick={generateBrief}
               disabled={
