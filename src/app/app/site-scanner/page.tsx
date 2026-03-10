@@ -27,6 +27,7 @@ import {
   Image as ImageIcon,
   Scan,
   Download,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -423,6 +424,7 @@ export default function SiteScannerPage() {
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   const [withScreenshot, setWithScreenshot] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -443,6 +445,36 @@ export default function SiteScannerPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const autoDetectCategories = async () => {
+    if (!url.trim()) {
+      toast.error("Enter a URL first");
+      return;
+    }
+    setDetecting(true);
+    try {
+      const res = await fetch("/api/detect-category/url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url.trim() }),
+      });
+      const data = await res.json();
+      const suggestions = data.suggestions as { categoryId: string; categoryName: string; confidence: number }[];
+      if (suggestions?.length) {
+        const ids = suggestions.map((s) => s.categoryId);
+        setSelectedCategories(ids);
+        toast.success(
+          `Detected ${suggestions.length} ${suggestions.length === 1 ? "category" : "categories"}: ${suggestions.map((s) => s.categoryName).join(", ")}`
+        );
+      } else {
+        toast.info("No specific categories detected — you can select manually or leave blank for a general scan");
+      }
+    } catch {
+      toast.error("Category detection failed");
+    } finally {
+      setDetecting(false);
+    }
+  };
 
   const runScan = async () => {
     if (!url.trim()) { toast.error("Enter a URL to scan"); return; }
@@ -602,9 +634,30 @@ export default function SiteScannerPage() {
               <MultiSelect label="Platforms" icon={Monitor} items={platforms} selected={selectedPlatforms} onChange={setSelectedPlatforms} />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5 block">
-                Categories
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Categories
+                </label>
+                <button
+                  type="button"
+                  onClick={autoDetectCategories}
+                  disabled={detecting || !url.trim()}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full transition-colors",
+                    detecting
+                      ? "bg-[#1A56DB]/10 text-[#1A56DB]"
+                      : "bg-slate-100 text-slate-500 hover:bg-[#1A56DB]/10 hover:text-[#1A56DB]",
+                    (!url.trim() && !detecting) && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {detecting ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  {detecting ? "Detecting..." : "Auto-detect"}
+                </button>
+              </div>
               <CategoryPicker categories={categories} selected={selectedCategories} onChange={setSelectedCategories} />
             </div>
             <div>
