@@ -66,6 +66,34 @@ export default async function DashboardPage() {
   const usagePct = usage.limit ? Math.min(100, (usage.used / usage.limit) * 100) : 0;
   const usageColor = usage.limit && usage.used / usage.limit > 0.9 ? "#ef4444" : usage.limit && usage.used / usage.limit > 0.7 ? "#f59e0b" : "#0d9488";
 
+  // Platform breakdown — aggregate checks by platform
+  const allChecks = await db.complianceCheck.findMany({
+    where: { userId: session!.user.id },
+    select: { platformIds: true, overallStatus: true },
+  });
+
+  const platformStats = new Map<string, { total: number; clean: number; issues: number }>();
+  for (const check of allChecks) {
+    for (const pid of check.platformIds) {
+      const stat = platformStats.get(pid) ?? { total: 0, clean: 0, issues: 0 };
+      stat.total++;
+      if (check.overallStatus === "CLEAN") stat.clean++;
+      else stat.issues++;
+      platformStats.set(pid, stat);
+    }
+  }
+
+  const platformBreakdownIds = [...platformStats.keys()];
+  const breakdownPlatforms = platformBreakdownIds.length
+    ? await db.platform.findMany({ where: { id: { in: platformBreakdownIds } }, select: { id: true, name: true } })
+    : [];
+  const breakdownNameMap = new Map(breakdownPlatforms.map((p) => [p.id, p.name]));
+
+  const platformBreakdown = [...platformStats.entries()]
+    .map(([id, stat]) => ({ name: breakdownNameMap.get(id) ?? id, ...stat }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+
   const featuredArticles = await db.policyArticle.findMany({
     where: { published: true, featured: true },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
@@ -240,6 +268,111 @@ export default async function DashboardPage() {
                 No checks this month yet.
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Platform Breakdown + Quick Actions */}
+        <div className="grid grid-cols-2 gap-3.5 mt-3.5">
+          {/* Platform Breakdown */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-slate-100">
+              <span className="text-[13px] font-bold text-slate-900">Platform Breakdown</span>
+              <span className="text-[10px] font-mono text-slate-400">All time</span>
+            </div>
+            <div className="p-4">
+              {platformBreakdown.length === 0 ? (
+                <div className="py-4 text-center text-xs text-slate-400">
+                  Run checks to see your platform breakdown.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {platformBreakdown.map((p) => {
+                    const cleanPct = p.total > 0 ? Math.round((p.clean / p.total) * 100) : 0;
+                    return (
+                      <div key={p.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-slate-700">{p.name}</span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {p.total} check{p.total !== 1 ? "s" : ""} &middot; {cleanPct}% clean
+                          </span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
+                          {p.clean > 0 && (
+                            <div
+                              className="h-full bg-emerald-400"
+                              style={{ width: `${(p.clean / p.total) * 100}%` }}
+                            />
+                          )}
+                          {p.issues > 0 && (
+                            <div
+                              className="h-full bg-red-300"
+                              style={{ width: `${(p.issues / p.total) * 100}%` }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-[18px] py-3.5 border-b border-slate-100">
+              <span className="text-[13px] font-bold text-slate-900">Quick Actions</span>
+            </div>
+            <div className="p-4 grid grid-cols-2 gap-2.5">
+              <Link
+                href="/app/check"
+                className="flex items-center gap-2.5 p-3 rounded-lg bg-teal-50 border border-teal-200 no-underline hover:bg-teal-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-teal-800">New Check</div>
+                  <div className="text-[10px] text-teal-600/70">Run a compliance check</div>
+                </div>
+              </Link>
+              <Link
+                href="/app/bulk-jobs"
+                className="flex items-center gap-2.5 p-3 rounded-lg bg-violet-50 border border-violet-200 no-underline hover:bg-violet-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-violet-500 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-violet-800">Bulk Upload</div>
+                  <div className="text-[10px] text-violet-600/70">Check a CSV batch</div>
+                </div>
+              </Link>
+              <Link
+                href="/app/brief"
+                className="flex items-center gap-2.5 p-3 rounded-lg bg-sky-50 border border-sky-200 no-underline hover:bg-sky-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-sky-800">Generate Brief</div>
+                  <div className="text-[10px] text-sky-600/70">Compliance guidance PDF</div>
+                </div>
+              </Link>
+              <Link
+                href="/app/learn"
+                className="flex items-center gap-2.5 p-3 rounded-lg bg-emerald-50 border border-emerald-200 no-underline hover:bg-emerald-100 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-emerald-800">Policy Library</div>
+                  <div className="text-[10px] text-emerald-600/70">Learn the rules</div>
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
 
