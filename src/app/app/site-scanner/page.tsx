@@ -27,7 +27,6 @@ import {
   Image as ImageIcon,
   Scan,
   Download,
-  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -423,10 +422,10 @@ export default function SiteScannerPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
+  const [withScreenshot, setWithScreenshot] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -463,6 +462,7 @@ export default function SiteScannerPage() {
           platformIds: selectedPlatforms,
           categoryIds: selectedCategories,
           countryIds: selectedCountries,
+          withScreenshot,
         }),
       });
 
@@ -474,6 +474,9 @@ export default function SiteScannerPage() {
 
       const data = await res.json();
       setResult(data);
+      if (data.screenshotUrl) {
+        setScreenshotUrl(data.screenshotUrl);
+      }
       toast.success("Scan complete");
     } catch {
       toast.error("Scan failed");
@@ -519,29 +522,6 @@ export default function SiteScannerPage() {
     }
   };
 
-  const captureScreenshotFn = async () => {
-    if (!result) return;
-    setCapturingScreenshot(true);
-    try {
-      const res = await fetch("/api/compliance/scan/screenshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: result.scan.url }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error(err.error || "Screenshot capture failed");
-        return;
-      }
-      const data = await res.json();
-      setScreenshotUrl(data.screenshots.clean);
-      toast.success("Screenshot captured");
-    } catch {
-      toast.error("Screenshot capture failed");
-    } finally {
-      setCapturingScreenshot(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -627,10 +607,45 @@ export default function SiteScannerPage() {
             </div>
           </div>
 
+          {/* Screenshot option */}
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <div
+              className={cn(
+                "h-5 w-5 rounded border-2 flex items-center justify-center transition-colors shrink-0",
+                withScreenshot
+                  ? "bg-[#1A56DB] border-[#1A56DB]"
+                  : "border-slate-300 group-hover:border-slate-400"
+              )}
+            >
+              {withScreenshot && (
+                <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <input
+              type="checkbox"
+              checked={withScreenshot}
+              onChange={(e) => setWithScreenshot(e.target.checked)}
+              className="sr-only"
+            />
+            <div>
+              <span className="text-sm font-medium text-slate-700">
+                Generate Compliance Visual
+              </span>
+              <span className="text-xs text-slate-400 ml-1.5">
+                (+1 Checkdit)
+              </span>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Captures a screenshot of the page for your compliance records
+              </p>
+            </div>
+          </label>
+
           {/* Actions */}
           <div className="flex items-center justify-between pt-2">
             <p className="text-xs text-slate-400">
-              1 Checkdit per page scanned
+              {withScreenshot ? "2 Checkdits" : "1 Checkdit"} per page scanned
             </p>
             <Button
               onClick={runScan}
@@ -640,7 +655,7 @@ export default function SiteScannerPage() {
               {scanning ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Scanning...
+                  Scanning{withScreenshot ? " & capturing..." : "..."}
                 </>
               ) : (
                 <>
@@ -678,22 +693,6 @@ export default function SiteScannerPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {!screenshotUrl && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={captureScreenshotFn}
-                  disabled={capturingScreenshot}
-                  className="gap-1.5"
-                >
-                  {capturingScreenshot ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Camera className="h-3.5 w-3.5" />
-                  )}
-                  {capturingScreenshot ? "Capturing..." : "Capture Screenshot"}
-                </Button>
-              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -791,18 +790,6 @@ export default function SiteScannerPage() {
           </div>
 
           {/* Screenshot */}
-          {capturingScreenshot && !screenshotUrl && (
-            <Card className="border-slate-200 shadow-sm">
-              <CardContent className="py-10 text-center">
-                <Camera className="h-8 w-8 text-[#1A56DB] mx-auto mb-3 animate-pulse" />
-                <h3 className="font-semibold text-slate-900 mb-1">Capturing screenshot...</h3>
-                <p className="text-sm text-slate-500">
-                  Rendering the page and capturing a screenshot.
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
           {screenshotUrl && (
             <Card className="border-slate-200 shadow-sm overflow-hidden">
               <CardContent className="pt-4 pb-4">

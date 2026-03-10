@@ -3,8 +3,10 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import Anthropic from "@anthropic-ai/sdk";
 import { extractPage, type PageExtraction } from "@/lib/scanner/extract";
+import { captureScreenshot } from "@/lib/scanner/screenshot";
 import { deductCredits } from "@/lib/usage";
 import { internalError } from "@/lib/api-error";
+import { v2 as cloudinary } from "cloudinary";
 
 export const maxDuration = 60; // allow up to 60s for crawl + AI
 
@@ -29,11 +31,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { url, platformIds, categoryIds, countryIds } = body as {
+    const { url, platformIds, categoryIds, countryIds, withScreenshot } = body as {
       url: string;
       platformIds: string[];
       categoryIds: string[];
       countryIds: string[];
+      withScreenshot?: boolean;
     };
 
     if (!url?.trim()) {
@@ -46,8 +49,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 1. Deduct 1 checkdit ──
-    const charged = await deductCredits(session.user.id, 1);
+    // ── 1. Deduct checkdits: 1 for scan + 1 if screenshot requested ──
+    const cost = withScreenshot ? 2 : 1;
+    const charged = await deductCredits(session.user.id, cost);
     if (!charged) {
       return NextResponse.json(
         { error: "Insufficient checkdits. Purchase more to continue." },
@@ -253,6 +257,45 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
       );
     }
 
+    // ── 6. Capture screenshot if requested ──
+    let screenshotUrl: string | null = null;
+    if (withScreenshot && process.env.APIFLASH_ACCESS_KEY) {
+      try {
+        const { clean } = await captureScreenshot(url);
+
+        // Upload to Cloudinary if configured, otherwise skip
+        if (
+          process.env.CLOUDINARY_CLOUD_NAME &&
+          process.env.CLOUDINARY_API_KEY &&
+          process.env.CLOUDINARY_API_SECRET
+        ) {
+          cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
+          });
+
+          const hostname = new URL(url).hostname.replace(/\./g, "-");
+          const folder = `scan-screenshots/${session.user.id}`;
+          const publicId = `${hostname}-${Date.now()}`;
+
+          screenshotUrl = await new Promise<string>((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              { folder, public_id: publicId, resource_type: "image", format: "png", overwrite: true },
+              (err, result) => {
+                if (err) reject(err);
+                else resolve(result!.secure_url);
+              }
+            );
+            stream.end(clean);
+          });
+        }
+      } catch (screenshotErr) {
+        // Screenshot failure is non-fatal — the scan still succeeds
+        console.error("[scan] Screenshot capture failed:", screenshotErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       scan: {
@@ -269,6 +312,7 @@ If something is genuinely compliant, mark it as "pass" — do not manufacture is
         imagesWithoutAlt: extraction.images.filter((img) => !img.alt).length,
       },
       report,
+      screenshotUrl,
     });
   } catch (err) {
     return internalError(err, "POST /api/compliance/scan");
