@@ -127,14 +127,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const sidebar = (
     <>
       {/* Logo lockup */}
-      <Link href="/app/dashboard" className="aug-sidebar-logo" style={{ textDecoration: "none", padding: "20px 16px 18px" }}>
+      <Link href="/app/dashboard" className="aug-sidebar-logo" style={{ textDecoration: "none", padding: "22px 12px 20px" }}>
         <Image
           src="/augur-teal-lockup.svg"
           alt="Augur"
           width={200}
-          height={54}
+          height={64}
           priority
-          style={{ height: 54, width: "auto" }}
+          style={{ height: 64, width: "auto" }}
         />
       </Link>
 
