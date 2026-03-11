@@ -99,7 +99,7 @@ export default async function DashboardPage() {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     take: 6,
     select: {
-      id: true, title: true, slug: true, summary: true, tags: true,
+      id: true, title: true, slug: true, summary: true, tags: true, imageUrl: true,
       platform: { select: { name: true } },
       category: { select: { name: true } },
     },
@@ -390,8 +390,12 @@ export default async function DashboardPage() {
                 <Link
                   key={article.id}
                   href={`/app/learn/${article.slug}`}
-                  className="block bg-white border border-slate-200 rounded-xl p-4 no-underline shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
+                  className="block bg-white border border-slate-200 rounded-xl overflow-hidden no-underline shadow-sm hover:border-teal-300 hover:shadow-md transition-all"
                 >
+                  {article.imageUrl && (
+                    <img src={article.imageUrl} alt="" className="w-full h-28 object-cover" />
+                  )}
+                  <div className="p-4">
                   <h3 className="text-xs font-bold text-slate-900 mb-1.5 line-clamp-2">{article.title}</h3>
                   <p className="text-[11px] text-slate-500 leading-relaxed mb-3 line-clamp-2">{article.summary}</p>
                   <div className="flex flex-wrap gap-1.5">
@@ -410,6 +414,7 @@ export default async function DashboardPage() {
                         {tag}
                       </span>
                     ))}
+                  </div>
                   </div>
                 </Link>
               ))}

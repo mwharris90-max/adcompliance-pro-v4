@@ -789,6 +789,7 @@ model PolicyArticle {
   examples      Json?    // Array of { good: string, bad: string, explanation: string }
   videoUrl      String?  // YouTube embed URL
   videoTitle    String?  // Video title for display
+  imageUrl      String?
   platformId    String?
   categoryId    String?
   countryId     String?

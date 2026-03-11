@@ -65,6 +65,7 @@ interface Article {
   examples: { good?: string; bad?: string; explanation: string }[] | null;
   videoUrl: string | null;
   videoTitle: string | null;
+  imageUrl: string | null;
   platformId: string | null;
   categoryId: string | null;
   countryId: string | null;
@@ -243,6 +244,7 @@ function ArticlesTab({
       examples: (a.examples ?? []) as { good?: string; bad?: string; explanation: string }[],
       videoUrl: a.videoUrl ?? "",
       videoTitle: a.videoTitle ?? "",
+      imageUrl: a.imageUrl ?? "",
       platformId: a.platformId ?? "",
       categoryId: a.categoryId ?? "",
       countryId: a.countryId ?? "",
@@ -264,6 +266,7 @@ function ArticlesTab({
       examples: form.examples.length > 0 ? form.examples : undefined,
       videoUrl: form.videoUrl || undefined,
       videoTitle: form.videoTitle || undefined,
+      imageUrl: form.imageUrl || undefined,
       platformId: form.platformId || undefined,
       categoryId: form.categoryId || undefined,
       countryId: form.countryId || undefined,
@@ -499,6 +502,7 @@ function emptyArticleForm() {
     examples: [] as { good?: string; bad?: string; explanation: string }[],
     videoUrl: "",
     videoTitle: "",
+    imageUrl: "",
     platformId: "",
     categoryId: "",
     countryId: "",
@@ -621,6 +625,38 @@ function ArticleForm({
           <Label className="text-sm font-medium">Video Title</Label>
           <Input value={form.videoTitle} onChange={(e) => setForm((f) => ({ ...f, videoTitle: e.target.value }))} />
         </div>
+      </div>
+
+      {/* Cover Image */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">Cover Image</Label>
+        {form.imageUrl && (
+          <div className="relative w-full max-w-xs">
+            <img src={form.imageUrl} alt="Cover" className="rounded-md border w-full h-32 object-cover" />
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, imageUrl: "" }))}
+              className="absolute top-1 right-1 bg-white/80 rounded-full p-1 hover:bg-white"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const fd = new FormData();
+            fd.append("file", file);
+            const res = await fetch("/api/upload", { method: "POST", body: fd });
+            if (res.ok) {
+              const json = await res.json();
+              setForm((f) => ({ ...f, imageUrl: json.data?.url ?? "" }));
+            }
+          }}
+        />
       </div>
 
       {/* Scope */}
