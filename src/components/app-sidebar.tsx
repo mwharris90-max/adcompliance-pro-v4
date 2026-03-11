@@ -127,14 +127,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const sidebar = (
     <>
       {/* Logo lockup */}
-      <Link href="/app/dashboard" className="aug-sidebar-logo" style={{ textDecoration: "none" }}>
+      <Link href="/app/dashboard" className="aug-sidebar-logo" style={{ textDecoration: "none", padding: "20px 16px 18px" }}>
         <Image
           src="/augur-teal-lockup.svg"
           alt="Augur"
-          width={160}
-          height={42}
+          width={200}
+          height={54}
           priority
-          style={{ height: 42, width: "auto" }}
+          style={{ height: 54, width: "auto" }}
         />
       </Link>
 
@@ -198,6 +198,28 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </div>
 
         <CheckditsPill />
+
+        {/* AUX branding */}
+        <a
+          href="https://www.theaux.co.uk"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            marginTop: 12,
+            padding: "6px 0",
+            fontSize: 9,
+            color: "var(--aug-dim)",
+            textDecoration: "none",
+            letterSpacing: "0.04em",
+          }}
+        >
+          <span style={{ opacity: 0.5 }}>An</span>
+          <span style={{ fontWeight: 700, color: "var(--aug-mid)", letterSpacing: "0.12em", fontSize: 10 }}>AUX</span>
+          <span style={{ opacity: 0.5 }}>product</span>
+        </a>
       </div>
     </>
   );
